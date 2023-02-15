@@ -1,5 +1,4 @@
 import os
-
 from django.shortcuts import render
 from .forms import FormCELEX
 from django.http import HttpResponse, HttpResponseRedirect
@@ -7,18 +6,19 @@ import requests
 import re
 from bs4 import BeautifulSoup
 from django.http import FileResponse
-from myapp.relations_spacy import find_semantic_relations
+from myapp.relations_spacy import find_semantic_relations, extract_hypernyms_str
+from myapp.definitions import find_definitions, get_annotations, check_definition_part_of_another_definition, \
+    most_frequent_definitions, format_document, get_counter, get_sentences
 
 site = ""
 celex = ""
 reg_title = ""
 definitions = ""
-sentences_with_definitions = ""
-sentences_set = {}
+relations = ""
 annotations = {}
 regulation_with_annotations = ""
 done_date = ""
-counter_set = {}  # counts the frequency of each definition
+regulation_body = ""
 
 
 def index(request):
@@ -31,7 +31,6 @@ def index(request):
             global site
             site = load_document(celex)
             return HttpResponseRedirect('result/')
-            # return HttpResponseRedirect(site)
     else:
         form = FormCELEX()
     return render(request, 'myapp/index.html', {'form': form})
@@ -57,97 +56,59 @@ def result(request):
     return render(request, 'myapp/result.html', context_dict)  # and the parameters for afterwards
 
 
-# soup.find("tag_name", {"class":"class_name"}) for specific information
+def annotations_page(request):
+    context_dict = {'body': regulation_body}
+    return render(request, 'myapp/annotations.html', context_dict)
+
+
 def extract_text(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
     global reg_title
     reg_title = find_title(soup)
-    find_definitions(soup)
+    global definitions
+    definitions = find_definitions(soup)
     global done_date
     done_date = soup.find(string=re.compile("Done at"))
     # add annotations to the existing regulation
     global annotations
+    annotations = get_annotations()
     for key, value in annotations.items():
-        # global sentences_with_definitions
         sentences = soup.find_all(string=lambda text: key in text)
-        # sentences_with_definitions = sentences_with_definitions + "\n" + key
         for sentence in sentences:
-            # sentences_with_definitions = "\n" + sentence.text
-            # Add the annotation as a new attribute to the parent element of the text
-            parent = sentence.parent
-            parent["data-annotation"] = value
-    # Save a regulation with annotations
+            d = check_definition_part_of_another_definition(key)
+            if d.__len__() == 0:
+                parent = sentence.parent
+                parent["data-tooltip"] = key + ' ' + value
+            else:
+                for k in d:
+                    if not sentence.__contains__(k):
+                        parent = sentence.parent
+                        parent["data-tooltip"] = key + ' ' + value
+
     global regulation_with_annotations
-    regulation_with_annotations = str(soup)
+    global regulation_body
+    regulation_body = soup.body
+    regulation_with_annotations = '<!DOCTYPE html><html lang="en"><head> <meta charset="UTF-8"> <title>Annotations' \
+                                  '</title><style>[data-tooltip] {position: relative;}[data-tooltip]::after {content:' \
+                                  'attr(data-tooltip);position: absolute; width: 500px; left: 0; top: 0; background: ' \
+                                  '#3989c9; color: #fff; padding: 0.5em; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3); ' \
+                                  'pointer-events: none; opacity: 0; transition: 1s; } [data-tooltip]:hover::after ' \
+                                  '{opacity: 1; top: 2em; } </style></head>"' + str(regulation_body) + '</html>'
     format_document(soup)
-    # semantic relations
-    global definitions
-    # find_semantic_relations(annotations)
-    # return definitions
+    global relations
+    relations = "\n".join(find_semantic_relations(annotations))
 
 
 def find_title(s):
-    title = ""
-    doc_title = s.find_all("p", {"class": "doc-ti"})
-    for element in doc_title:
-        title = title + " " + element.text
-    return title
-
-
-def find_definitions(soup):
-    defin = []
-    # extract only the article which contains definitions
-    start_class = soup.find("p", {"class": "sti-art"}, string="Definitions")  # {"id": "d1e1489-1-1"}
-    end_class = soup.find("p", {"class": "ti-art"}, string=re.compile("Article"))  # d1e1797-1-1
-    # extract the definitions and their explanations
+    start_class = s.find("p", string=re.compile("REGULATION"))
+    end_class = s.find("p", string=re.compile("HE EUROPEAN PARLIAMENT AND THE COUNCIL"))
+    title = str(start_class.text)
     for element in start_class.next_siblings:
         if element == end_class:
             break
-        if element.text.__contains__("’") & element.text.__contains__("means"):
-            full_def = element.text.replace("\n\n", "\n")
-            only_def = full_def.split("’")[0].strip()
-            # extracting concrete definitions and explanations for later search as a dictionary
-            match = re.search("[a-zA-Z]", only_def)
-            if match:
-                only_def = only_def[match.start():]
-                stringtosplit = only_def + '’ '
-                only_expl = full_def.split(stringtosplit)[1].strip()
-                # add an annotation to the dictionary
-                global annotations
-                annotations[only_def] = only_expl
-            defin.append(full_def.replace("\n\n", "\n"))
-    global definitions
-    definitions = "".join(defin)
-
-
-def format_document(s):
-    global counter_set
-    global sentences_set
-    # leaving only enacting terms
-    start_class = s.find("p", {"class": "normal"}, string="HAVE ADOPTED THIS REGULATION:")
-    end_class = s.find("div", {"class": "final"})
-    for key, value in annotations.items():
-        counter = 0
-        all_sentences = ""
-        for element in start_class.next_siblings:
-            if element == end_class:
-                break
-            if key in element.text:
-                counter += 1
-                new_text = element.text.replace("\n\n", "\n").strip()
-                all_sentences = all_sentences + "\n" + "Sentence " + str(counter) + ": " + new_text
-        sentences_set[key] = all_sentences
-        counter_set[key] = counter
-
-
-def most_frequent_definitions():
-    def_list = []
-    sorted_def = sorted(counter_set, key=counter_set.get, reverse=True)
-    top_five = sorted_def[:5]
-    for element in top_five:
-        def_list.append(element + ": " + str(counter_set[element]) + " hits\n")
-    return def_list
+        title = title + " " + element.text
+    return title
 
 
 # create a txt. file to download with all definitions and their explanations
@@ -162,10 +123,11 @@ def download_definitions_file(request):
 # create a txt. file to download with all sentences with definitions
 def download_sentences(request):
     with open("sentences.txt", "w") as file:
-        global sentences_set
+        sentences_set = get_sentences()
         for key, value in sentences_set.items():
+            counter = get_counter()
             file.write("Definition: " + key + "\n")
-            file.write("Total number of sentences including definition: " + str(counter_set[key]) + "\n\n")
+            file.write("Total number of sentences including definition: " + str(counter[key]) + "\n\n")
             file.write("\t\t" + value + "\n\n")
     response = FileResponse(open("sentences.txt", 'rb'))
     response['Content-Disposition'] = 'attachment; filename="sentences.txt"'
@@ -178,4 +140,13 @@ def download_annotations(request):
         file.write(regulation_with_annotations)
     response = FileResponse(open("annotated_page.html", "rb"))
     response['Content-Disposition'] = 'attachment; filename="annotated_page.html"'
+    return response
+
+
+# create a text file to download with all semantic relations listed
+def download_relations(request):
+    with open("relations.txt", "w") as file:
+        file.write(relations)
+    response = FileResponse(open("relations.txt", 'rb'))
+    response['Content-Disposition'] = 'attachment; filename="relations.txt"'
     return response

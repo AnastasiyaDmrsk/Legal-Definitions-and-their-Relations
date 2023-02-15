@@ -22,7 +22,8 @@
     <button class="btn btn-dark" type="button"> <a href="{% url 'download_definitions_file' %}"> Download a list of legal definitions</a></button>
     <button class="btn btn-dark" type="button"> <a href="{% url 'download_sentences' %}"> Download a list of sentences with legal definitions</a></button>
     <button class="btn btn-dark" type="button"><a href="{% url 'download_annotations' %}"> Download a regulation with annotations</a></button>
-    <button class="btn btn-dark" type="button">Download a list of semantic relations between definitions</button>
+    {#<button class="btn btn-dark" type="button"> <a href="{% url 'annotations' %}">Regulation with annotations</a></button>#}
+    <button class="btn btn-dark" type="button"><a href="{% url 'download_relations' %}">Download a list of semantic relations between definitions</a></button>
     </div>
 </div>
 <div class="statistics" style="text-align: center; color: black">

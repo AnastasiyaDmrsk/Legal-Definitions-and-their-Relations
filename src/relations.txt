@@ -1,0 +1,29 @@
+personal data is a hyponym of information
+processing is a hyponym of operation
+processing is a hyponym of set of operations
+restriction of processing is a hyponym of marking of stored personal data
+profiling is a hyponym of form of automated processing
+pseudonymisation is a hyponym of processing of personal data
+filing system is a hyponym of structured set of personal data
+controller is a hyponym of legal person
+processor is a hyponym of legal person
+recipient is a hyponym of legal person
+third party is a hyponym of legal person
+consent is a hyponym of data
+personal data breach is a hyponym of breach of security
+genetic data is a hyponym of personal data
+biometric data is a hyponym of personal data
+data concerning health is a hyponym of personal data
+main establishment is a hyponym of controller with establishments
+representative is a hyponym of legal person
+enterprise is a hyponym of legal person
+group of undertakings is a hyponym of undertaking
+group of undertakings is a hyponym of undertakings
+binding corporate rules is a hyponym of personal data
+supervisory authority is a hyponym of public authority
+supervisory authority concerned is a hyponym of supervisory authority
+cross-border processing is a hyponym of processing of personal data
+relevant and reasoned objection is a hyponym of objection to a draft
+information society service is a hyponym of service
+international organisation is a hyponym of organisation
+international organisation is a hyponym of subordinate bodies
