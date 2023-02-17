@@ -8,7 +8,8 @@ from bs4 import BeautifulSoup
 from django.http import FileResponse
 from myapp.relations_spacy import find_semantic_relations, extract_hypernyms_str
 from myapp.definitions import find_definitions, get_annotations, check_definition_part_of_another_definition, \
-    most_frequent_definitions, format_document, get_counter, get_sentences
+    most_frequent_definitions, format_document, get_counter, get_sentences, calculate_the_frequency, \
+    check_two_definitions_in_text
 
 site = ""
 celex = ""
@@ -74,24 +75,30 @@ def extract_text(url):
     global annotations
     annotations = get_annotations()
     for key, value in annotations.items():
-        sentences = soup.find_all(string=lambda text: key in text)
+        sentences = soup.find_all(string=re.compile(key))  # (string=lambda text: key in text)
         for sentence in sentences:
             d = check_definition_part_of_another_definition(key)
-            if d.__len__() == 0:
-                parent = sentence.parent
+            new_tag = soup.new_tag('span')
+            new_tag["data-tooltip"] = key + ' ' + value
+            new_tag["style"] = "background-color: yellow;"
+            new_tag.string = key
+            if d.__len__() != 0:
+                for k in d:
+                    if check_two_definitions_in_text(key, k, sentence.text):
+                        break
+            parent = sentence.parent
+            if parent.has_attr("data-tooltip") and not parent.get("data-tooltip").__contains__(key + ' ' + value):
+                parent["data-tooltip"] = parent.get("data-tooltip") + '\n\n' + key + ' ' + value
+            elif not parent.has_attr("data-tooltip"):
                 parent["data-tooltip"] = key + ' ' + value
             else:
-                for k in d:
-                    if not sentence.__contains__(k):
-                        parent = sentence.parent
-                        parent["data-tooltip"] = key + ' ' + value
-
-    global regulation_with_annotations
+                break
     global regulation_body
     regulation_body = soup.body
+    global regulation_with_annotations
     regulation_with_annotations = '<!DOCTYPE html><html lang="en"><head> <meta charset="UTF-8"> <title>Annotations' \
                                   '</title><style>[data-tooltip] {position: relative;}[data-tooltip]::after {content:' \
-                                  'attr(data-tooltip);position: absolute; width: 500px; left: 0; top: 0; background: ' \
+                                  'attr(data-tooltip);position: absolute; width: 600px; left: 0; top: 0; background: ' \
                                   '#3989c9; color: #fff; padding: 0.5em; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3); ' \
                                   'pointer-events: none; opacity: 0; transition: 1s; } [data-tooltip]:hover::after ' \
                                   '{opacity: 1; top: 2em; } </style></head>"' + str(regulation_body) + '</html>'
@@ -128,6 +135,7 @@ def download_sentences(request):
             counter = get_counter()
             file.write("Definition: " + key + "\n")
             file.write("Total number of sentences including definition: " + str(counter[key]) + "\n\n")
+            file.write(calculate_the_frequency(key) + "\n\n")
             file.write("\t\t" + value + "\n\n")
     response = FileResponse(open("sentences.txt", 'rb'))
     response['Content-Disposition'] = 'attachment; filename="sentences.txt"'
