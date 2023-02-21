@@ -6,15 +6,15 @@ import requests
 import re
 from bs4 import BeautifulSoup
 from django.http import FileResponse
-from myapp.relations_spacy import find_semantic_relations, extract_hypernyms_str
-from myapp.definitions import find_definitions, get_annotations, check_definition_part_of_another_definition, \
+from myapp.relations_spacy import find_semantic_relations
+from myapp.definitions import find_definitions, get_annotations, \
     most_frequent_definitions, format_document, get_counter, get_sentences, calculate_the_frequency, \
-    check_two_definitions_in_text
+    check_more_definitions_in_text
 
 site = ""
 celex = ""
 reg_title = ""
-definitions = ""
+definitions = list(tuple())
 relations = ""
 annotations = {}
 regulation_with_annotations = ""
@@ -50,10 +50,14 @@ def load_document(celex):
 
 def result(request):
     extract_text(site)
-    context_dict = {'site': site, 'celex': celex, 'definitions': definitions, 'num_def': len(annotations.keys()),
-                    'title': reg_title, 'date': done_date, 'frequent1': most_frequent_definitions()[0],
-                    'frequent2': most_frequent_definitions()[1], 'frequent3': most_frequent_definitions()[2],
-                    'frequent4': most_frequent_definitions()[3], 'frequent5': most_frequent_definitions()[4]}
+    if len(most_frequent_definitions()) >= 5:
+        context_dict = {'site': site, 'celex': celex, 'definitions': definitions, 'num_def': len(annotations.keys()),
+                        'title': reg_title, 'date': done_date, 'frequent1': most_frequent_definitions()[0],
+                        'frequent2': most_frequent_definitions()[1], 'frequent3': most_frequent_definitions()[2],
+                        'frequent4': most_frequent_definitions()[3], 'frequent5': most_frequent_definitions()[4]}
+    else:
+        context_dict = {'site': site, 'celex': celex, 'definitions': definitions, 'num_def': len(annotations.keys()),
+                        'title': reg_title, 'date': done_date}
     return render(request, 'myapp/result.html', context_dict)  # and the parameters for afterwards
 
 
@@ -71,40 +75,42 @@ def extract_text(url):
     definitions = find_definitions(soup)
     global done_date
     done_date = soup.find(string=re.compile("Done at"))
-    # add annotations to the existing regulation
     global annotations
     annotations = get_annotations()
-    for key, value in annotations.items():
-        sentences = soup.find_all(string=re.compile(key))  # (string=lambda text: key in text)
-        for sentence in sentences:
-            d = check_definition_part_of_another_definition(key)
-            new_tag = soup.new_tag('span')
-            new_tag["data-tooltip"] = key + ' ' + value
-            new_tag["style"] = "background-color: yellow;"
-            new_tag.string = key
-            if d.__len__() != 0:
-                for k in d:
-                    if check_two_definitions_in_text(key, k, sentence.text):
-                        break
-            parent = sentence.parent
-            if parent.has_attr("data-tooltip") and not parent.get("data-tooltip").__contains__(key + ' ' + value):
-                parent["data-tooltip"] = parent.get("data-tooltip") + '\n\n' + key + ' ' + value
-            elif not parent.has_attr("data-tooltip"):
-                parent["data-tooltip"] = key + ' ' + value
-            else:
-                break
+    add_annotations_to_the_regulation(soup)
     global regulation_body
     regulation_body = soup.body
     global regulation_with_annotations
     regulation_with_annotations = '<!DOCTYPE html><html lang="en"><head> <meta charset="UTF-8"> <title>Annotations' \
-                                  '</title><style>[data-tooltip] {position: relative;}[data-tooltip]::after {content:' \
-                                  'attr(data-tooltip);position: absolute; width: 600px; left: 0; top: 0; background: ' \
+                                  '</title><style>[data-tooltip] {position: relative;}' \
+                                  '[data-tooltip]::after {content:' \
+                                  'attr(data-tooltip);position: absolute; width: 400px; left: 0; top: 0; background: ' \
                                   '#3989c9; color: #fff; padding: 0.5em; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3); ' \
                                   'pointer-events: none; opacity: 0; transition: 1s; } [data-tooltip]:hover::after ' \
-                                  '{opacity: 1; top: 2em; } </style></head>"' + str(regulation_body) + '</html>'
+                                  '{opacity: 1; top: 2em; z-index: 99999; } ' \
+                                  '</style></head>"' + str(regulation_body) + '</html>'
     format_document(soup)
     global relations
-    relations = "\n".join(find_semantic_relations(annotations))
+    relations = "\n".join(find_semantic_relations(definitions))
+
+
+def add_annotations_to_the_regulation(soup):
+    for sentence in soup.find_all("p"):
+        for (key, value) in definitions:
+            if sentence.text.__contains__(key):
+                text = sentence.text  # cut_tag(sentence)
+                sentence.clear()
+                # new_tag.string = key TODO: mehrere Annotationen als nur eine pro Abschnitt hinzufügen
+                if not check_more_definitions_in_text(key, sentence.text):
+                    match = re.search(key, text)
+                    start, end = match.start(), match.end()
+                    sentence.append(text[:start])
+                    new_tag = soup.new_tag('span')
+                    new_tag["style"] = "background-color: yellow;"
+                    new_tag["data-tooltip"] = key + ' ' + value
+                    new_tag.append(text[start:end])
+                    sentence.append(new_tag)
+                    sentence.append(text[end:])
 
 
 def find_title(s):
@@ -118,10 +124,18 @@ def find_title(s):
     return title
 
 
+def cut_tag(tag):
+    new_string = str(tag)
+    start = new_string.find(">")
+    end = new_string.rfind("<")
+    return new_string[start + 1:end]
+
+
 # create a txt. file to download with all definitions and their explanations
 def download_definitions_file(request):
     with open("file.txt", "w") as file:
-        file.write(definitions)
+        for key, value in annotations.items():
+            file.write(key + " " + value + "\n")
     response = FileResponse(open("file.txt", 'rb'))
     response['Content-Disposition'] = 'attachment; filename="file.txt"'
     return response

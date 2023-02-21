@@ -4,14 +4,13 @@
 import spacy
 
 
-def find_semantic_relations(annotations):
+def find_semantic_relations(relations):
     # in relations key is the left side of the relation aka hyponym and values are the right side of the relation
-    # TODO: falls mehrere Beschreibungen vorhanden sind, sollen die dann auch überprüft werden z.B 16
     # TODO: mehrere mögliche Relationen abspeichern --> z.B mit , getrennt
     # relations = {}
     all_relations = []
     nlp = spacy.load("en_core_web_sm")
-    for key, value in annotations.items():
+    for (key, value) in relations:
         sentence = value
         doc = nlp(sentence)
         relation_list = []
@@ -24,7 +23,7 @@ def find_semantic_relations(annotations):
                 if token.i > 0 and doc[token.i-1].pos_ == "ADJ":
                     relation = doc[token.i-1].text + " " + relation
                 if token.nbor().pos_ == "ADP":
-                    while token.nbor().pos_ != "NOUN":
+                    while len(doc) - 1 > token.idx and token.nbor().pos_ != "NOUN":
                         relation = relation + " " + token.nbor().text
                         token = token.nbor()
                     relation = relation + " " + token.nbor().text
