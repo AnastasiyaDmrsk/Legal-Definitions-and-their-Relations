@@ -6,10 +6,10 @@ import requests
 import re
 from bs4 import BeautifulSoup
 from django.http import FileResponse
-from myapp.relations_spacy import find_semantic_relations
+from myapp.relations_spacy import find_semantic_relations, noun_relations
 from myapp.definitions import find_definitions, get_annotations, \
     most_frequent_definitions, format_document, get_counter, get_sentences, calculate_the_frequency, \
-    check_more_definitions_in_text
+    check_more_definitions_in_text, any_definition_in_text
 
 site = ""
 celex = ""
@@ -91,7 +91,7 @@ def extract_text(url):
                                   '</style></head>"' + str(regulation_body) + '</html>'
     format_document(soup)
     global relations
-    relations = "\n".join(find_semantic_relations(definitions))
+    relations = "\n".join(noun_relations(definitions))  # (find_semantic_relations(definitions))
 
 
 def add_annotations_to_the_regulation(soup):
@@ -102,6 +102,16 @@ def add_annotations_to_the_regulation(soup):
                 sentence.clear()
                 # new_tag.string = key TODO: mehrere Annotationen als nur eine pro Abschnitt hinzufügen
                 if not check_more_definitions_in_text(key, sentence.text):
+                    # sort by the starting index
+                    defs = sorted(any_definition_in_text(text), key=lambda x: x[2])
+                    start_index = 0
+                    for (k, v, start, end) in defs:
+                        sentence.append(text[start_index:start])
+                        tag = create_new_tag(soup, text, k, v, start, end)
+                        sentence.append(tag)
+                        start_index = end
+                    sentence.append(text[start_index:])
+                    """
                     match = re.search(key, text)
                     start, end = match.start(), match.end()
                     sentence.append(text[:start])
@@ -111,6 +121,7 @@ def add_annotations_to_the_regulation(soup):
                     new_tag.append(text[start:end])
                     sentence.append(new_tag)
                     sentence.append(text[end:])
+                    """
 
 
 def find_title(s):
@@ -122,6 +133,15 @@ def find_title(s):
             break
         title = title + " " + element.text
     return title
+
+
+def create_new_tag(soup, text, key, value, start, end):
+    new_tag = soup.new_tag('span')
+    new_tag["style"] = "background-color: yellow;"
+    new_tag["data-tooltip"] = key + ' ' + value
+    new_tag.string = text[start:end]
+    # new_tag.append(text[start:end])
+    return new_tag
 
 
 def cut_tag(tag):

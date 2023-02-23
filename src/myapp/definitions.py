@@ -8,7 +8,9 @@ annotations = {}  # only 1:1 relations --> better for pure printing
 counter_set = {}  # counts the frequency of each definition
 sentences_set = {}
 articles_set = {}
+sub_definitions = {}  # here we save all the definitions which are the part of another definitions
 definitions = {}  # definitions n:m
+definitions_dict = {}  # definitions 1:n for annotations
 articles_set_and_frequency = {}
 definitions_list = list(tuple())  # in this list each element is a tuple (definition, explanation)
 nltk.download('wordnet')
@@ -29,21 +31,22 @@ def find_definitions(soup):
         if re.match(r"^Article \d+$", element.text.strip()):
             break
         process_definitions(element.text)
+    save_to_sub_definitions()
     return definitions_list
 
 
 def check_definition_part_of_another_definition(definition):
-    part_def = []
+    part_def = set()
     for (key, value) in definitions_list:
         if key.__contains__(definition) and key != definition:
-            part_def.append(key)
+            part_def.add(key)
     return part_def
 
 
-def check_multiple_explanations(definition):
-    if annotations[definition].__contains__("; or"):
-        return True
-    return False
+def save_to_sub_definitions():
+    global sub_definitions
+    for (key, value) in definitions_list:
+        sub_definitions[key] = check_definition_part_of_another_definition(key)
 
 
 def format_document(s):
@@ -61,7 +64,7 @@ def format_document(s):
         article = ""
         articles_set[key] = set()
         articles_set_and_frequency[key] = list()
-        d = check_definition_part_of_another_definition(key)
+        d = sub_definitions[key]
         for element in start_class.next_siblings:
             if element == end_class:
                 break
@@ -138,7 +141,7 @@ def check_two_definitions_in_text(definition1, definition2, text):
 
 # return True if only the longest definitions occur in the text, but the shortest does not
 def check_more_definitions_in_text(definition1, text):
-    definition_set = check_definition_part_of_another_definition(definition1)
+    definition_set = sub_definitions[definition1]
     for s in definition_set:
         if check_two_definitions_in_text(definition1, s, text):
             return True
@@ -186,7 +189,22 @@ def process_definitions(text):
                         definition_set.add(element)
             for element_e in e:
                 if element_e != "" and element_e[0] != "(":
-                    explanation_set.add(element_e)
+                    # multiple explanations
+                    if element_e.__contains__(":"):
+                        base = element_e
+                        while len(e) > e.index(element_e) + 1:
+                            next_element = e[e.index(element_e) + 1]
+                            if next_element[0] == "(" and len(e) > e.index(element_e) + 2:
+                                new_element = base + " " + e[e.index(element_e) + 2]
+                                element_e = e[e.index(element_e) + 2]
+                            else:
+                                new_element = base + " " + next_element
+                                element_e = e[e.index(element_e) + 1]
+                            explanation_set.add(new_element)
+                        break
+                    # single explanation
+                    else:
+                        explanation_set.add(element_e)
             global definitions
             save_in_list(definition_set, explanation_set)
             d_set = tuple(definition_set)
@@ -226,9 +244,48 @@ def save_in_list(set1, set2):
             global definitions_list
             start = s.find("‘")
             end = s.rfind("’")
-            definitions_list.append((s[start + 1:end], s2))
+            definition = s[start + 1:end]
+            definitions_list.append((definition, s2))
+            # save in the dictionary for the annotations later
+            global definitions_dict
+            if definition in definitions_dict:
+                definitions_dict[definition] += '\n' + s2
+            else:
+                definitions_dict[definition] = s2
 
 
 def save_in_annotations(definition, explanation):
     global annotations
     annotations[definition] = explanation
+
+
+def any_definition_in_text(text):
+    definitions_in_text = set(tuple())
+    starts_and_ends = set(tuple())
+    # TODO: definition is a part of another definition
+    for key, value in definitions_dict.items():
+        if text.__contains__(key):
+            d = sub_definitions[key]
+            if len(d) != 0:
+                for k in d:
+                    if text.__contains__(k):
+                        match = re.search(k, text)
+                        s, e = match.start(), match.end()
+                        if not check_definition_inside(starts_and_ends, s, e):
+                            definitions_in_text.add((k, value, s, e))
+                            starts_and_ends.add((s, e))
+            match = re.search(key, text)
+            start, end = match.start(), match.end()
+            if not check_definition_inside(starts_and_ends, start, end):
+                definitions_in_text.add((key, value, start, end))
+                starts_and_ends.add((start, end))
+    return definitions_in_text
+
+
+def check_definition_inside(start_and_end, start, end):
+    for (s, e) in start_and_end:
+        if s == start or e == end:
+            return True
+        elif start > s and end < e:
+            return True
+    return False
