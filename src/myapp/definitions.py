@@ -49,53 +49,56 @@ def save_to_sub_definitions():
         sub_definitions[key] = check_definition_part_of_another_definition(key)
 
 
-def format_document(s):
+def fill_sets():
+    global articles_set
+    global articles_set_and_frequency
+    global sentences_set
     global counter_set
-    counter_set = {}
+    for (key, value) in definitions_list:
+        articles_set[key] = set()
+        articles_set_and_frequency[key] = list()
+        sentences_set[key] = ""
+        counter_set[key] = 1
+
+
+def format_document(s):
+    global articles_set
+    articles_set = {}
+    global articles_set_and_frequency
+    articles_set_and_frequency = {}
     global sentences_set
     sentences_set = {}
+    global counter_set
+    counter_set = {}
+    fill_sets()
     # leaving only enacting terms
     start_class = s.find("p", string="HAVE ADOPTED THIS REGULATION:")
     end_class = s.find("div", {"class": "final"})
-    global definitions_list
-    for (key, value) in definitions_list:
-        counter = 0
-        all_sentences = ""
-        article = ""
-        articles_set[key] = set()
-        articles_set_and_frequency[key] = list()
-        d = sub_definitions[key]
-        for element in start_class.next_siblings:
-            if element == end_class:
-                break
-            pattern = r"^Article \d+$"
-            if re.match(pattern, element.text):
-                article = element.text
-            if key in element.text:
-                # check if exactly this definition is mentioned or another one
-                if d.__len__() != 0:
-                    for k in d:
-                        if check_two_definitions_in_text(key, k, element.text):
-                            break
-                counter += 1
-                new_text = element.text.replace("\n\n", "\n").strip()
-                all_sentences = all_sentences + "\n" + "Sentence " + str(counter) + ": " + new_text
-                articles_set[key].add(article)
-                articles_set_and_frequency[key].append(article)
-
-        sentences_set[key] = all_sentences
-        counter_set[key] = counter
-
-
-def most_frequent_definitions():
-    def_list = []
-    sorted_def = sorted(counter_set, key=counter_set.get, reverse=True)
-    if len(sorted_def) >= 5:
-        top_five = sorted_def[:5]
-        for element in top_five:
-            def_list.append(element + ": " + str(counter_set[element]) + " hits in " +
-                            len(articles_set[element]).__str__() + " articles")
-    return def_list
+    article = ""
+    for sentence in start_class.next_siblings:
+        if sentence == end_class:
+            break
+        text = sentence.text.strip()
+        # print(sentence.text)
+        # print("parent: " + sentence.parent.text)
+        if text == "":
+            continue
+        # print("Here is text:" + text)
+        pattern = r"^Article \d+$"
+        if re.match(pattern, sentence.text):
+            article = text
+        defs_set = any_definition_in_text(text)
+        if len(defs_set) != 0:
+            for (k, v, s, e) in defs_set:
+                if k in articles_set and k in articles_set_and_frequency and k in sentences_set and k in counter_set:
+                    # print(k + " and " + article)
+                    articles_set[k].add(article)
+                    articles_set_and_frequency[k].append(article)
+                    # TODO: bei den anderen Regulationen wird der gesamte Block abgespeichert
+                    # TODO: Eventuell soll man nur die Sätze dann abspeichern
+                    # print(k + " and text: " + text.replace("\n\n", "\n").strip())
+                    sentences_set[k] += "\n" + text.replace("\n\n", "\n").strip()
+                    counter_set[k] += 1
 
 
 def get_article_number(article):
@@ -116,15 +119,6 @@ def get_counter():
 
 def get_articles(key):
     articles = ", ".join(sorted(articles_set[key], key=get_article_number))
-    return articles
-
-
-def calculate_the_frequency(key):
-    counter = Counter(articles_set_and_frequency[key])
-    repeated_elements = [(element, count) for element, count in counter.items()]
-    articles = "Definition " + key + " can be found in: "
-    for (element, count) in repeated_elements:
-        articles = articles + element + " with " + str(count) + " number of hits; "
     return articles
 
 
@@ -259,10 +253,13 @@ def save_in_annotations(definition, explanation):
     annotations[definition] = explanation
 
 
+def get_dictionary():
+    return definitions_dict
+
+
 def any_definition_in_text(text):
     definitions_in_text = set(tuple())
     starts_and_ends = set(tuple())
-    # TODO: definition is a part of another definition
     for key, value in definitions_dict.items():
         if text.__contains__(key):
             d = sub_definitions[key]

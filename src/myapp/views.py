@@ -6,9 +6,10 @@ import requests
 import re
 from bs4 import BeautifulSoup
 from django.http import FileResponse
-from myapp.relations_spacy import find_semantic_relations, noun_relations
+from collections import Counter
+from myapp.relations_spacy import noun_relations, build_tree, get_hyponymy
 from myapp.definitions import find_definitions, get_annotations, \
-    most_frequent_definitions, format_document, get_counter, get_sentences, calculate_the_frequency, \
+    format_document, \
     check_more_definitions_in_text, any_definition_in_text
 
 site = ""
@@ -20,6 +21,11 @@ annotations = {}
 regulation_with_annotations = ""
 done_date = ""
 regulation_body = ""
+
+counter_set = {}  # counts the frequency of each definition
+sentences_set = {}
+articles_set = {}
+articles_set_and_frequency = {}
 
 
 def index(request):
@@ -89,18 +95,29 @@ def extract_text(url):
                                   'pointer-events: none; opacity: 0; transition: 1s; } [data-tooltip]:hover::after ' \
                                   '{opacity: 1; top: 2em; z-index: 99999; } ' \
                                   '</style></head>"' + str(regulation_body) + '</html>'
-    format_document(soup)
     global relations
-    relations = "\n".join(noun_relations(definitions))  # (find_semantic_relations(definitions))
+    relations = "\n".join(noun_relations(definitions))
 
 
 def add_annotations_to_the_regulation(soup):
+    global sentences_set
+    sentences_set.clear()
+    global articles_set
+    articles_set.clear()
+    global articles_set_and_frequency
+    articles_set_and_frequency.clear()
+    article = ""
+    # case if a regulation has div for each article
+    if soup.find("div", id="001") is not None:
+        for div in soup.find_all("div"):
+            div.unwrap()
     for sentence in soup.find_all("p"):
+        if check_if_article(sentence.text):
+            article = sentence.text
         for (key, value) in definitions:
             if sentence.text.__contains__(key):
                 text = sentence.text  # cut_tag(sentence)
                 sentence.clear()
-                # new_tag.string = key TODO: mehrere Annotationen als nur eine pro Abschnitt hinzufügen
                 if not check_more_definitions_in_text(key, sentence.text):
                     # sort by the starting index
                     defs = sorted(any_definition_in_text(text), key=lambda x: x[2])
@@ -110,22 +127,75 @@ def add_annotations_to_the_regulation(soup):
                         tag = create_new_tag(soup, text, k, v, start, end)
                         sentence.append(tag)
                         start_index = end
+                        sent = text.replace("\n\n", "\n").strip()
+                        if k not in sentences_set:
+                            sentences_set[k] = set()
+                        sentences_set[k].add(sent)
+                        if k not in articles_set:
+                            articles_set[k] = set()
+                        articles_set[k].add(article)
+                        if k not in articles_set_and_frequency:
+                            articles_set_and_frequency[k] = list()
+                        articles_set_and_frequency[k].append(article)
                     sentence.append(text[start_index:])
-                    """
-                    match = re.search(key, text)
-                    start, end = match.start(), match.end()
-                    sentence.append(text[:start])
-                    new_tag = soup.new_tag('span')
-                    new_tag["style"] = "background-color: yellow;"
-                    new_tag["data-tooltip"] = key + ' ' + value
-                    new_tag.append(text[start:end])
-                    sentence.append(new_tag)
-                    sentence.append(text[end:])
-                    """
+
+
+def check_if_article(text):
+    if not text.__contains__("Article ") or len(text) > 11:
+        return False
+    new_text = text.replace("Article ", "")
+    if new_text.isdigit():
+        return True
+    return False
+
+
+def add_to_div_regulation(soup):
+    global sentences_set
+    sentences_set.clear()
+    global articles_set
+    articles_set.clear()
+    global articles_set_and_frequency
+    articles_set_and_frequency.clear()
+    article = ""
+    article_number = 1
+    article_id = str(article_number).zfill(3)
+    sentences = soup.find("div", id="001")
+    while sentences is not None:
+        for sentence in soup.find("div", id=article_id).find_all('p'):
+            article = "Article " + str(article_number)
+            for (key, value) in definitions:
+                if sentence.text.__contains__(key):
+                    text = sentence.text  # cut_tag(sentence)
+                    sentence.clear()
+                    if not check_more_definitions_in_text(key, sentence.text):
+                        # sort by the starting index
+                        defs = sorted(any_definition_in_text(text), key=lambda x: x[2])
+                        start_index = 0
+                        for (k, v, start, end) in defs:
+                            sentence.append(text[start_index:start])
+                            tag = create_new_tag(soup, text, k, v, start, end)
+                            sentence.append(tag)
+                            start_index = end
+                            sent = text.replace("\n\n", "\n").strip()
+                            if k not in sentences_set:
+                                sentences_set[k] = set()
+                            sentences_set[k].add(sent)
+                            if k not in articles_set:
+                                articles_set[k] = set()
+                            articles_set[k].add(article)
+                            if k not in articles_set_and_frequency:
+                                articles_set_and_frequency[k] = list()
+                            articles_set_and_frequency[k].append(article)
+                        sentence.append(text[start_index:])
+        article_number += 1
+        article_id = str(article_number).zfill(3)
+        sentences = soup.find("div", id=article_id)
 
 
 def find_title(s):
     start_class = s.find("p", string=re.compile("REGULATION"))
+    if start_class is None:
+        return ""
     end_class = s.find("p", string=re.compile("HE EUROPEAN PARLIAMENT AND THE COUNCIL"))
     title = str(start_class.text)
     for element in start_class.next_siblings:
@@ -140,8 +210,27 @@ def create_new_tag(soup, text, key, value, start, end):
     new_tag["style"] = "background-color: yellow;"
     new_tag["data-tooltip"] = key + ' ' + value
     new_tag.string = text[start:end]
-    # new_tag.append(text[start:end])
     return new_tag
+
+
+def most_frequent_definitions():
+    def_list = []
+    sorted_def = sorted(sentences_set.items(), key=lambda x: len(x[1]), reverse=True)
+    if len(sorted_def) >= 5:
+        top_five_definitions = [definition[0] for definition in sorted_def[:5]]
+        for d in top_five_definitions:
+            def_list.append(d + ": " + str(len(sentences_set[d])) + " hits in " + len(articles_set[d]).__str__() +
+                            " articles")
+    return def_list
+
+
+def calculate_the_frequency(key):
+    counter = Counter(articles_set_and_frequency[key])
+    repeated_elements = [(element, count) for element, count in counter.items()]
+    articles = "Definition " + key + " can be found in: "
+    for (element, count) in repeated_elements:
+        articles = articles + element + " with " + str(count) + " number of hits; "
+    return articles
 
 
 def cut_tag(tag):
@@ -164,13 +253,13 @@ def download_definitions_file(request):
 # create a txt. file to download with all sentences with definitions
 def download_sentences(request):
     with open("sentences.txt", "w") as file:
-        sentences_set = get_sentences()
-        for key, value in sentences_set.items():
-            counter = get_counter()
+        for key in sentences_set:
             file.write("Definition: " + key + "\n")
-            file.write("Total number of sentences including definition: " + str(counter[key]) + "\n\n")
+            file.write("Total number of text segments including definition: " + str(len(sentences_set[key])) + "\n\n")
             file.write(calculate_the_frequency(key) + "\n\n")
-            file.write("\t\t" + value + "\n\n")
+            for sent in sentences_set[key]:
+                file.write("\t\t" + sent + "\n\n")
+            file.write("\n\n")
     response = FileResponse(open("sentences.txt", 'rb'))
     response['Content-Disposition'] = 'attachment; filename="sentences.txt"'
     return response
@@ -189,6 +278,14 @@ def download_annotations(request):
 def download_relations(request):
     with open("relations.txt", "w") as file:
         file.write(relations)
+        file.write("\n\n")
+        file.write("Hyponymy Tree: \n")
+        hyponymy = get_hyponymy()
+        keys = set(hyponymy.keys())
+        values = set().union(*hyponymy.values())
+        roots = keys.difference(values)
+        for root in roots:
+            file.write(build_tree(root))
     response = FileResponse(open("relations.txt", 'rb'))
     response['Content-Disposition'] = 'attachment; filename="relations.txt"'
     return response
