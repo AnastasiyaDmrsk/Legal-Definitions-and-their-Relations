@@ -5,18 +5,14 @@ import requests
 
 
 # documentation how CELEX is identified: https://eur-lex.europa.eu/content/tools/eur-lex-celex-infographic-A3.pdf
-# first char is a sector (in our case for regulations it should be 3)
-# 2.-5. char is a year
-# 6. char should be R for regulation
-# 7.-10. char is a document number
 def check(celex):
     if celex[0] != '3':
-        raise ValidationError('The sector has to be 3, which stays for a legislation.')
-    elif celex[1] != '1':
+        raise ValidationError('This type of sector is not supported, please enter a CELEX number of a regulation.')
+    if celex[1] != '1':
         if celex[1] != '2':
             raise ValidationError('The year of a regulation is invalid. ')
-    elif celex[5] != 'R':
-        raise ValidationError('The legislation has to be a regulation. ')
+    if celex[5] != 'R':
+        raise ValidationError('The legal document has to be a regulation. ')
     # check whether the regulation exists or not
     new_url = 'https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:' + celex + '&from=EN'
     soup = BeautifulSoup(requests.get(new_url).text, 'html.parser')

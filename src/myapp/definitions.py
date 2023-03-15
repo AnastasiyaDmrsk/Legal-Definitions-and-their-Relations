@@ -1,6 +1,5 @@
 import re
 import nltk
-from collections import Counter
 from nltk.corpus import wordnet as wn
 import spacy
 
@@ -21,6 +20,8 @@ def find_definitions(soup):
     annotations = {}
     global definitions_list
     definitions_list = list(tuple())
+    global definitions_dict
+    definitions_dict = {}
     # extract only the article which contains definitions
     start_class = soup.find("p", string="Definitions")
     end_class = soup.find("p", string=re.compile("Article"))
@@ -59,46 +60,6 @@ def fill_sets():
         articles_set_and_frequency[key] = list()
         sentences_set[key] = ""
         counter_set[key] = 1
-
-
-def format_document(s):
-    global articles_set
-    articles_set = {}
-    global articles_set_and_frequency
-    articles_set_and_frequency = {}
-    global sentences_set
-    sentences_set = {}
-    global counter_set
-    counter_set = {}
-    fill_sets()
-    # leaving only enacting terms
-    start_class = s.find("p", string="HAVE ADOPTED THIS REGULATION:")
-    end_class = s.find("div", {"class": "final"})
-    article = ""
-    for sentence in start_class.next_siblings:
-        if sentence == end_class:
-            break
-        text = sentence.text.strip()
-        # print(sentence.text)
-        # print("parent: " + sentence.parent.text)
-        if text == "":
-            continue
-        # print("Here is text:" + text)
-        pattern = r"^Article \d+$"
-        if re.match(pattern, sentence.text):
-            article = text
-        defs_set = any_definition_in_text(text)
-        if len(defs_set) != 0:
-            for (k, v, s, e) in defs_set:
-                if k in articles_set and k in articles_set_and_frequency and k in sentences_set and k in counter_set:
-                    # print(k + " and " + article)
-                    articles_set[k].add(article)
-                    articles_set_and_frequency[k].append(article)
-                    # TODO: bei den anderen Regulationen wird der gesamte Block abgespeichert
-                    # TODO: Eventuell soll man nur die Sätze dann abspeichern
-                    # print(k + " and text: " + text.replace("\n\n", "\n").strip())
-                    sentences_set[k] += "\n" + text.replace("\n\n", "\n").strip()
-                    counter_set[k] += 1
 
 
 def get_article_number(article):
@@ -267,15 +228,17 @@ def any_definition_in_text(text):
                 for k in d:
                     if text.__contains__(k):
                         match = re.search(k, text)
-                        s, e = match.start(), match.end()
-                        if not check_definition_inside(starts_and_ends, s, e):
-                            definitions_in_text.add((k, value, s, e))
-                            starts_and_ends.add((s, e))
+                        if match is not None:
+                            s, e = match.start(), match.end()
+                            if not check_definition_inside(starts_and_ends, s, e):
+                                definitions_in_text.add((k, value, s, e))
+                                starts_and_ends.add((s, e))
             match = re.search(key, text)
-            start, end = match.start(), match.end()
-            if not check_definition_inside(starts_and_ends, start, end):
-                definitions_in_text.add((key, value, start, end))
-                starts_and_ends.add((start, end))
+            if match is not None:
+                start, end = match.start(), match.end()
+                if not check_definition_inside(starts_and_ends, start, end):
+                    definitions_in_text.add((key, value, start, end))
+                    starts_and_ends.add((start, end))
     return definitions_in_text
 
 
@@ -286,3 +249,15 @@ def check_definition_inside(start_and_end, start, end):
         elif start > s and end < e:
             return True
     return False
+
+
+# for testing purposes
+def print_definitions():
+    global definitions_list
+    counter = 0
+    for (d, e) in definitions_list:
+        counter += 1
+        print(str(counter) + ": " + d + " " + e)
+    print("Annotations: " + str(len(annotations)))
+    print("Dictionary: " + str(len(definitions_dict)))
+    print("List: " + str(len(definitions_list)))

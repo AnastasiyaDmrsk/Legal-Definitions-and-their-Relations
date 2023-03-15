@@ -1,7 +1,6 @@
-import os
 from django.shortcuts import render
 from .forms import FormCELEX
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 import requests
 import re
 from bs4 import BeautifulSoup
@@ -9,7 +8,6 @@ from django.http import FileResponse
 from collections import Counter
 from myapp.relations_spacy import noun_relations, build_tree, get_hyponymy
 from myapp.definitions import find_definitions, get_annotations, \
-    format_document, \
     check_more_definitions_in_text, any_definition_in_text
 
 site = ""
@@ -93,7 +91,7 @@ def extract_text(url):
                                   'attr(data-tooltip);position: absolute; width: 400px; left: 0; top: 0; background: ' \
                                   '#3989c9; color: #fff; padding: 0.5em; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3); ' \
                                   'pointer-events: none; opacity: 0; transition: 1s; } [data-tooltip]:hover::after ' \
-                                  '{opacity: 1; top: 2em; z-index: 99999; } ' \
+                                  '{opacity: 1; top: 2em; z-index: 99999; right: max(20px, calc(100% - 220px));} ' \
                                   '</style></head>"' + str(regulation_body) + '</html>'
     global relations
     relations = "\n".join(noun_relations(definitions))
@@ -116,7 +114,7 @@ def add_annotations_to_the_regulation(soup):
             article = sentence.text
         for (key, value) in definitions:
             if sentence.text.__contains__(key):
-                text = sentence.text  # cut_tag(sentence)
+                text = sentence.text
                 sentence.clear()
                 if not check_more_definitions_in_text(key, sentence.text):
                     # sort by the starting index
@@ -147,49 +145,6 @@ def check_if_article(text):
     if new_text.isdigit():
         return True
     return False
-
-
-def add_to_div_regulation(soup):
-    global sentences_set
-    sentences_set.clear()
-    global articles_set
-    articles_set.clear()
-    global articles_set_and_frequency
-    articles_set_and_frequency.clear()
-    article = ""
-    article_number = 1
-    article_id = str(article_number).zfill(3)
-    sentences = soup.find("div", id="001")
-    while sentences is not None:
-        for sentence in soup.find("div", id=article_id).find_all('p'):
-            article = "Article " + str(article_number)
-            for (key, value) in definitions:
-                if sentence.text.__contains__(key):
-                    text = sentence.text  # cut_tag(sentence)
-                    sentence.clear()
-                    if not check_more_definitions_in_text(key, sentence.text):
-                        # sort by the starting index
-                        defs = sorted(any_definition_in_text(text), key=lambda x: x[2])
-                        start_index = 0
-                        for (k, v, start, end) in defs:
-                            sentence.append(text[start_index:start])
-                            tag = create_new_tag(soup, text, k, v, start, end)
-                            sentence.append(tag)
-                            start_index = end
-                            sent = text.replace("\n\n", "\n").strip()
-                            if k not in sentences_set:
-                                sentences_set[k] = set()
-                            sentences_set[k].add(sent)
-                            if k not in articles_set:
-                                articles_set[k] = set()
-                            articles_set[k].add(article)
-                            if k not in articles_set_and_frequency:
-                                articles_set_and_frequency[k] = list()
-                            articles_set_and_frequency[k].append(article)
-                        sentence.append(text[start_index:])
-        article_number += 1
-        article_id = str(article_number).zfill(3)
-        sentences = soup.find("div", id=article_id)
 
 
 def find_title(s):
@@ -229,8 +184,8 @@ def calculate_the_frequency(key):
     repeated_elements = [(element, count) for element, count in counter.items()]
     articles = "Definition " + key + " can be found in: "
     for (element, count) in repeated_elements:
-        articles = articles + element + " with " + str(count) + " number of hits; "
-    return articles
+        articles = articles + element + "; "  # + " with " + str(count) + " number of hits "
+    return articles.replace(" ; ", " ")
 
 
 def cut_tag(tag):
