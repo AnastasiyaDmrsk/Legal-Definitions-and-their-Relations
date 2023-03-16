@@ -65,6 +65,7 @@ def result(request):
     return render(request, 'myapp/result.html', context_dict)  # and the parameters for afterwards
 
 
+# for testing purposes of assignment of annotations
 def annotations_page(request):
     context_dict = {'body': regulation_body}
     return render(request, 'myapp/annotations.html', context_dict)
@@ -85,6 +86,7 @@ def extract_text(url):
     global regulation_body
     regulation_body = soup.body
     global regulation_with_annotations
+    # adding some styling to the annotations
     regulation_with_annotations = '<!DOCTYPE html><html lang="en"><head> <meta charset="UTF-8"> <title>Annotations' \
                                   '</title><style>[data-tooltip] {position: relative;}' \
                                   '[data-tooltip]::after {content:' \
@@ -147,11 +149,12 @@ def check_if_article(text):
     return False
 
 
+# can be adjusted depending on the processed document
 def find_title(s):
     start_class = s.find("p", string=re.compile("REGULATION"))
     if start_class is None:
         return ""
-    end_class = s.find("p", string=re.compile("HE EUROPEAN PARLIAMENT AND THE COUNCIL"))
+    end_class = s.find("p", string=re.compile("THE EUROPEAN PARLIAMENT AND THE COUNCIL"))
     title = str(start_class.text)
     for element in start_class.next_siblings:
         if element == end_class:
