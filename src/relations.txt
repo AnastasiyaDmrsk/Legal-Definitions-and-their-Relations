@@ -1,115 +1,68 @@
-binding corporate rules is a hyponym of personal data protection policies
-biometric data is a hyponym of personal data
-consent is a hyponym of freely given , specific , informed and unambiguous indication
-controller is a hyponym of agency
-controller is a hyponym of natural or legal person
-controller is a hyponym of other body
-controller is a hyponym of public authority
-cross-border processing is a hyponym of processing
-data concerning health is a hyponym of personal data
-enterprise is a hyponym of natural or legal person
-filing system is a hyponym of structured set
-genetic data is a hyponym of personal data
-group of undertakings is a hyponym of controlled undertakings
-group of undertakings is a hyponym of controlling undertaking
-information society service is a hyponym of service
-international organisation is a hyponym of organisation
-international organisation is a hyponym of subordinate bodies
-main establishment is a hyponym of controller
-main establishment is a hyponym of processor
-personal data breach is a hyponym of breach
-personal data is a hyponym of information
-processing is a hyponym of operation
-processing is a hyponym of set
-processor is a hyponym of agency
-processor is a hyponym of natural or legal person
-processor is a hyponym of other body
-processor is a hyponym of public authority
-profiling is a hyponym of form
-pseudonymisation is a hyponym of processing
-recipient is a hyponym of agency
-recipient is a hyponym of body
-recipient is a hyponym of natural or legal person
-recipient is a hyponym of public authority
-relevant and reasoned objection is a hyponym of objection
-representative is a hyponym of natural or legal person
-restriction of processing is a hyponym of marking
-supervisory authority concerned is a hyponym of supervisory authority
-supervisory authority is a hyponym of independent public authority
-third party is a hyponym of agency
-third party is a hyponym of body
-third party is a hyponym of natural or legal person
-third party is a hyponym of public authority
+C1 tyres is a hyponym of tyres
+C2 tyres is a hyponym of tyres
+C3 tyres is a hyponym of tyres
+C3 tyres, C1 tyres, C2 tyres are synonyms
+T‐type temporary‐use spare tyre is a hyponym of temporary‐use spare tyre
+authorised representative is a hyponym of natural or legal person
+distance selling is a hyponym of offer
+distributor is a hyponym of natural or legal person
+end-user is a hyponym of consumer
+end-user is a hyponym of fleet manager
+end-user is a hyponym of road transport undertaking
+importer is a hyponym of importer
+making available on the market is a hyponym of making available on the market
+manufacturer is a hyponym of manufacturer
+off‐road professional tyre is a hyponym of special‐use tyre
+parameter is a hyponym of tyre characteristic
+placing on the market is a hyponym of placing on the market
+point of sale is a hyponym of location
+product database is a hyponym of product database
+product information sheet is a hyponym of standard document
+re‐treaded tyre is a hyponym of used tyre
+supplier is a hyponym of manufacturer
+technical documentation is a hyponym of documentation
+technical promotional material is a hyponym of documentation
+tyre label is a hyponym of graphic diagram
+tyre type identifier is a hyponym of code
+tyre type is a hyponym of version
+verification tolerance is a hyponym of maximum admissible deviation
 
 Hyponymy Tree: 
-body
-| third party
-| recipient
-other body
-| processor
-| | main establishment
-| controller
-| | main establishment
-controlling undertaking
-| group of undertakings
-organisation
-| international organisation
-marking
-| restriction of processing
-set
-| processing
-| | pseudonymisation
-| | cross-border processing
-public authority
-| processor
-| | main establishment
-| controller
-| | main establishment
-| third party
-| recipient
-independent public authority
-| supervisory authority
-| | supervisory authority concerned
-controlled undertakings
-| group of undertakings
-information
-| personal data
-| | genetic data
-| | data concerning health
-| | biometric data
-breach
-| personal data breach
-personal data protection policies
-| binding corporate rules
+fleet manager
+| end-user
+version
+| tyre type
+code
+| tyre type identifier
+maximum admissible deviation
+| verification tolerance
+tyres
+| C3 tyres
+| C1 tyres
+| C2 tyres
+offer
+| distance selling
+graphic diagram
+| tyre label
 natural or legal person
-| enterprise
-| processor
-| | main establishment
-| controller
-| | main establishment
-| third party
-| representative
-| recipient
-structured set
-| filing system
-subordinate bodies
-| international organisation
-service
-| information society service
-agency
-| processor
-| | main establishment
-| controller
-| | main establishment
-| third party
-| recipient
-objection
-| relevant and reasoned objection
-form
-| profiling
-operation
-| processing
-| | pseudonymisation
-| | cross-border processing
-freely given , specific , informed and unambiguous indication
-| consent
+| distributor
+| authorised representative
+documentation
+| technical documentation
+| technical promotional material
+tyre characteristic
+| parameter
+used tyre
+| re‐treaded tyre
+special‐use tyre
+| off‐road professional tyre
+consumer
+| end-user
+location
+| point of sale
+standard document
+| product information sheet
+road transport undertaking
+| end-user
+temporary‐use spare tyre
+| T‐type temporary‐use spare tyre

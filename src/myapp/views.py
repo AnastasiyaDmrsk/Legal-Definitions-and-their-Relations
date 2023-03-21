@@ -1,3 +1,5 @@
+import unicodedata
+
 from django.shortcuts import render
 from .forms import FormCELEX
 from django.http import HttpResponseRedirect
@@ -6,6 +8,7 @@ import re
 from bs4 import BeautifulSoup
 from django.http import FileResponse
 from collections import Counter
+from myapp.tests import compare_definitions_and_relations, compare_sentences
 from myapp.relations_spacy import noun_relations, build_tree, get_hyponymy
 from myapp.definitions import find_definitions, get_annotations, \
     check_more_definitions_in_text, any_definition_in_text
@@ -59,6 +62,15 @@ def result(request):
                         'title': reg_title, 'date': done_date, 'frequent1': most_frequent_definitions()[0],
                         'frequent2': most_frequent_definitions()[1], 'frequent3': most_frequent_definitions()[2],
                         'frequent4': most_frequent_definitions()[3], 'frequent5': most_frequent_definitions()[4]}
+    elif len(most_frequent_definitions()) == 4:
+        context_dict = {'site': site, 'celex': celex, 'definitions': definitions, 'num_def': len(annotations.keys()),
+                        'title': reg_title, 'date': done_date, 'frequent1': most_frequent_definitions()[0],
+                        'frequent2': most_frequent_definitions()[1], 'frequent3': most_frequent_definitions()[2],
+                        'frequent4': most_frequent_definitions()[3]}
+    elif len(most_frequent_definitions()) == 3:
+        context_dict = {'site': site, 'celex': celex, 'definitions': definitions, 'num_def': len(annotations.keys()),
+                        'title': reg_title, 'date': done_date, 'frequent1': most_frequent_definitions()[0],
+                        'frequent2': most_frequent_definitions()[1], 'frequent3': most_frequent_definitions()[2]}
     else:
         context_dict = {'site': site, 'celex': celex, 'definitions': definitions, 'num_def': len(annotations.keys()),
                         'title': reg_title, 'date': done_date}
@@ -97,6 +109,9 @@ def extract_text(url):
                                   '</style></head>"' + str(regulation_body) + '</html>'
     global relations
     relations = "\n".join(noun_relations(definitions))
+    # uncomment for evaluation purposes
+    compare_sentences()
+    # compare_definitions_and_relations()
 
 
 def add_annotations_to_the_regulation(soup):
@@ -128,6 +143,7 @@ def add_annotations_to_the_regulation(soup):
                         sentence.append(tag)
                         start_index = end
                         sent = text.replace("\n\n", "\n").strip()
+                        sent = unicodedata.normalize("NFKD", sent)
                         if k not in sentences_set:
                             sentences_set[k] = set()
                         sentences_set[k].add(sent)
@@ -174,10 +190,9 @@ def create_new_tag(soup, text, key, value, start, end):
 def most_frequent_definitions():
     def_list = []
     sorted_def = sorted(sentences_set.items(), key=lambda x: len(x[1]), reverse=True)
-    if len(sorted_def) >= 5:
-        top_five_definitions = [definition[0] for definition in sorted_def[:5]]
-        for d in top_five_definitions:
-            def_list.append(d + ": " + str(len(sentences_set[d])) + " hits in " + len(articles_set[d]).__str__() +
+    top_five_definitions = [definition[0] for definition in sorted_def[:5]]
+    for d in top_five_definitions:
+        def_list.append(d + ": " + str(len(sentences_set[d])) + " hits in " + len(articles_set[d]).__str__() +
                             " articles")
     return def_list
 
@@ -196,6 +211,10 @@ def cut_tag(tag):
     start = new_string.find(">")
     end = new_string.rfind("<")
     return new_string[start + 1:end]
+
+
+def get_sentences():
+    return sentences_set
 
 
 # create a txt. file to download with all definitions and their explanations

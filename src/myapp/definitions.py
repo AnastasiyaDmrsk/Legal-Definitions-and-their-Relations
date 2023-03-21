@@ -1,4 +1,6 @@
 import re
+import unicodedata
+
 import nltk
 from nltk.corpus import wordnet as wn
 import spacy
@@ -119,6 +121,7 @@ def is_synonym(verb):
 
 
 def process_definitions(text):
+    text = unicodedata.normalize("NFKD", text)
     if text.__contains__("’"):
         nlp = spacy.load("en_core_web_sm")
         doc = nlp(text.split(";")[0])  # this way only the most important part of the definition will be examined
@@ -127,6 +130,9 @@ def process_definitions(text):
         # search for the first verb after the definition
         first_verb = None
         for token in doc:
+            if token.text.__contains__("mean"):
+                first_verb = token
+                break
             if token.dep_ == "ROOT" and (token.pos_ == "VERB" or token.pos_ == "AUX"):
                 first_verb = token
                 break
@@ -145,7 +151,7 @@ def process_definitions(text):
             for element_e in e:
                 if element_e != "" and element_e[0] != "(":
                     # multiple explanations
-                    if element_e.__contains__(":"):
+                    if len(e) > 1 and element_e.__contains__(":"):
                         base = element_e
                         while len(e) > e.index(element_e) + 1:
                             next_element = e[e.index(element_e) + 1]
