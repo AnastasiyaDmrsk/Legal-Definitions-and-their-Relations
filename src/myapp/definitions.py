@@ -237,7 +237,7 @@ def any_definition_in_text(text):
                         if match is not None:
                             s, e = match.start(), match.end()
                             if not check_definition_inside(starts_and_ends, s, e):
-                                definitions_in_text.add((k, value, s, e))
+                                definitions_in_text.add((k, definitions_dict[k], s, e))
                                 starts_and_ends.add((s, e))
             match = re.search(key, text)
             if match is not None:

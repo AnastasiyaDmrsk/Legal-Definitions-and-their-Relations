@@ -44,7 +44,7 @@ def noun_relations(definitions):
             # in case of enumeration
             if noun.root.text == "following":
                 continue
-            if noun.root.text == "type" or noun.root.text == "kind" or noun.root.text == "form"\
+            if (noun.root.text == "type" or noun.root.text == "kind" or noun.root.text == "form")\
                     and doc[noun.end:][0].text == "of":
                 continue
             if (noun.root.text == "part" or noun.root.text == "piece" or noun.root.text == "portion") \
