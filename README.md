@@ -1,18 +1,43 @@
 # Identification and Visualization of Legal Definitions and their Relations Based on European Regulatory Document
 ***
-The goal of this project is to implement a prototype capable of extracting legal definitions from Regulations of the European Parliament and of the Council in the English Language provided by [EUR-Lex](https://eur-lex.europa.eu) and identifying semantic relations among them. The tool operates exactly one regulatory document, which corresponds to the CELEX number entered by the user. 
+This project introduces an automated prototype capable of extracting legal definitions and their corresponding semantic relations (i.e., hyponymy, meronymy, and synonymy) from the _Regulations of the European Parliament and of the Council_ published on [EUR-Lex](https://eur-lex.europa.eu). We consider this tool beneficial for law experts and the general public, and the approach can be expanded or applied to a wider variety of European regulatory documents.
+## Motivation
+***
+Numerous companies constantly face the problem of rising compliance requirements derived from the IT environment due to digital business activities and processes. The task of business process compliance is to ensure that the organization's business operations comply with the regulatory laws affecting the organization. If the organization fails to achieve compliance, this can result in financial penalties and a loss of investors. Thus, companies attach significant importance to obeying regulatory laws and reviewing the current updates of legal documents, which is a manual process that costs substantial amounts of time and effort. The most considerable disadvantages of the manual procedure are time consumption, costs, and fallibility since the chance of overlooking crucial information or misinterpreting the content is pretty high. Additionally, misjudging or slipping up by observing regulations can result in the organization's forfeiting a large amount of money.
+
+In this project, we focus on digitizing business process compliance and facilitating the interpretation of the legal text by extracting legal definitions and their semantic relations from regulatory documents.
+Legal definitions determine the specific lexical terms used within legal texts' discourse utilizing normative rules and are described as a rule at the beginning of each legal act. These terms are not entirely used for precise and effective communication but ensure the correct interpretation
+of the legal text. They further aid in comparing the meaning of legal definitions used in other acts, which possibly describe the same concept but with different terms.
+
+![definition drawio](https://github.com/AnastasiyaDmrsk/Identification-and-Visualization-of-Legal-Definitions-and-Relations/assets/87528008/b978470b-f70f-43dd-9c76-5ac086d2002d)
 ## General Information
 ***
-This project concentrates on three main assignments: information retrieval in form of definitions, attaching annotations to the collected document, extracting text segments containing legal terms, and building semantic relations among definitions such as hyponymy and synonymy. The intention is to facilitate the understanding of regulatory documents and accelerate the search of relevant information in legal text. 
+This project concentrates on three primary assignments: **definition extraction**, including extracting text segments containing legal terms and attaching annotations with explanations to the corresponding definitions, **relation extraction**, and **visualization** of extracted information. The intention is to facilitate the understanding of regulatory documents and accelerate the search for relevant information in legal text. The contributions of this project are as follows: 
++ Approach for legal definitions and semantic relation extraction and visualization, including obtaining text segments containing definitions and annotating the entered regulation by applying NLP techniques.
++ Intuitive web service that adopts the proposed approach to enable users to access the extracted information referring to legal definitions.
++ Discovery of the frequency of specific definitions and their locations to accelerate the legal search and provide insight into the regulation's objective.
 
-### Definitions Extraction
-The extraction of legal term is implemented with the support of BeautifulSoup HTML parser and spaCy NLP techniques like tokenization, POS tagging, and dependency parsing. For assigning annotations and storing text segments mentioning legal definitions, we applied BeautifulSoup and rewrote the content of detected sentences with a new data-tooltip tag. 
+![Overview drawio](https://github.com/AnastasiyaDmrsk/Identification-and-Visualization-of-Legal-Definitions-and-Relations/assets/87528008/93bbd775-3f6f-40ef-b934-83dd63ff7adf)
 
-### Relations Extraction 
-With the purpose of identifying semantic relations among legal definitions, such as hyponymy, we apply SpaCy and iterate over each term's explanation searching for the noun phrases. In the presented approach we consider M:N relationships as well, where many definitions can have many explanations and so many hypernyms. On the other hand, M:1 relationship points to the synonymy, which is also handled by the prototype. 
+### Preparation and Input Verification
+Before processing a regulation, the tool validates the entered [CELEX number](https://eur-lex.europa.eu](https://eur-lex.europa.eu/content/tools/eur-lex-celex-infographic-A3.pdf)) for referring to a legislation sector and regulations. If it is the case, the prototype checks whether the document with the number exists und if it contains an article called _"Definitions"_.  
 
-### Vizualization 
-To design a layout of the prototype, we applied Django Forms and Bootstrap. A user is supposed to submit a valid CELEX of a regulation containing an article "Definitions", otherwise a validation error is raised with an individual message depending on the problem. If the regulation passes the criteria, the prototype handles the document and redirects users to the resulting page. With the purpose of increasing usability, the tool extracts the full title of the entered regulation. Additionally, it displays five options: the user can be redirected to the original source in EUR-Lex or download all the generated output files in the specified format. Furthermore, the prototype renders the statistics relying on the regulation, such as the date of execution and the number of legal definitions, together with more specific statistics referring to the extracted definitions, such as the most frequent definitions and the number of articles where they occur. 
+### Definition Extraction
+The extraction of legal definitions is implemented with the support of BeautifulSoup HTML parser and spaCy NLP techniques like tokenization, POS tagging, and dependency parsing. For assigning annotations and storing text segments mentioning legal definitions, we applied BeautifulSoup and rewrote the content of detected sentences with a new data-tooltip tag. 
+
+### Relation Extraction 
+With the purpose of identifying semantic relations among legal definitions, such as hyponymy, meronymy, and synonymy, we apply spaCy and iterate over each term's explanation searching for the noun phrases. Depending on the relation pattern, the prototype saves the relations as follows: 
++ **Hyponymy**: _"definition + ' is a hyponym of ' + hyperonym"_
++ **Meronymy**: _"definition + ' is a meronym of ' + holonym"_
++ **Synonymy**: _"definition 1 + ', ' + ... + ', ' + definition n + ' are synonyms'"_
+
+The resulting text file depicting the obtained semantic relations is sorted alphabetically to simplify the search for the specific legal definition. At the end of the file, users can also find a hyponymy tree to gain a more profound understanding of the terms' meanings.
+
+### Visualization 
+To design a layout of the prototype, we applied Django Forms and Bootstrap. A user is supposed to submit a valid CELEX number of a regulation containing an article _"Definitions"_, otherwise a validation error is raised with an individual message depending on the problem. If the regulation passes the criteria, the prototype handles the document and redirects users to the resulting page. With the purpose of increasing usability, the tool extracts the full title of the entered regulation. Additionally, it displays five options: the user can be redirected to the original source in EUR-Lex or download all the generated output files in the specified format. Furthermore, the prototype renders the statistics relying on the regulation, such as the date of execution and the number of legal definitions, together with more specific statistics referring to the extracted definitions, such as the most frequent definitions and the number of articles where they occur. 
+
+![frontend](https://github.com/AnastasiyaDmrsk/Identification-and-Visualization-of-Legal-Definitions-and-Relations/assets/87528008/9b21bd7b-4cf5-4e97-a75a-4a3328c98670)
+
 
 ## Technologies
 ***
@@ -45,7 +70,7 @@ git pull
 ```bash
 pip install -r requirements.txt
 ```
-5. Go into the mysite directory 
+5. Go into the src directory 
 ```bash
 cd src
 ```
@@ -54,4 +79,13 @@ cd src
 python manage.py runserver
 ```
 Enjoy!
+## Evaluation
+***
+We manually created gold standards for definition and relation extraction evaluation, as well as for sentences extraction. For the testing purposes, we selected 18 regulations from EUR-Lex with the filter option "relevance". All the gold standards can be found in src/myapp/gold_standard directory. 
 
+1. In order to test a specific regulation, in tests.py _gold_ (for definition and relation extraction) or _gold_sentences_ (for sentences extraction) variable should be adjusted depending on the CELEX number of the regulation.  
+2. Then go to views.py and uncomment line 113 for senteces extraction evaluation or line 114 for definition and relation extraction.
+3. Run the project and enter a CELEX number to start processing a regulation.
+4. Compare the output results in the terminal which are empty if gold standard file is the same as the resulting file. 
+
+The prototype was able to identify and extract legal definitions in 99.8% of cases as well as their semantic relations in 96.7% of cases, using NLP techniques, particularly dependency parsing, tokenization, and POS-tagging.
