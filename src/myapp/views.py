@@ -157,9 +157,9 @@ def add_annotations_to_the_regulation(soup):
 
 
 def check_if_article(text):
-    if not text.__contains__("Article ") or len(text) > 11:
+    if len(text) > 11 or not text.__contains__("Article"):
         return False
-    new_text = text.replace("Article ", "")
+    new_text = text.replace("Article", "").strip()
     if new_text.isdigit():
         return True
     return False
