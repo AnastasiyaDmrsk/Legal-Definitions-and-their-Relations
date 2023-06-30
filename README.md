@@ -36,8 +36,11 @@ The resulting text file depicting the obtained semantic relations is sorted alph
 ### Visualization 
 To design a layout of the prototype, we applied Django Forms and Bootstrap. A user is supposed to submit a valid CELEX number of a regulation containing an article _"Definitions"_, otherwise a validation error is raised with an individual message depending on the problem. If the regulation passes the criteria, the prototype handles the document and redirects users to the resulting page. With the purpose of increasing usability, the tool extracts the full title of the entered regulation. Additionally, it displays five options: the user can be redirected to the original source in EUR-Lex or download all the generated output files in the specified format. Furthermore, the prototype renders the statistics relying on the regulation, such as the date of execution and the number of legal definitions, together with more specific statistics referring to the extracted definitions, such as the most frequent definitions and the number of articles where they occur. 
 
-![frontend](https://github.com/AnastasiyaDmrsk/Identification-and-Visualization-of-Legal-Definitions-and-Relations/assets/87528008/9b21bd7b-4cf5-4e97-a75a-4a3328c98670)
+![layout drawio](https://github.com/AnastasiyaDmrsk/Identification-and-Visualization-of-Legal-Definitions-and-Relations/assets/87528008/6af8d5a4-09ae-43fe-a20b-1b411db164ed)
 
+#### Knowledge Graph
+For better visualization of extracted semantic relations, the web service provides a knowledge graph for legal definitions. Since a general graph with all semantic relations and terms would be too complex, the user should pick from the list one legal definition and submit it. Additionally, the user can choose which type of relation should be the base of the graph. After the submission, the tool loads a graph, highlighting the entered definition in red and the other legal definitions in pink. Below the graph, the summary of the frequency data referring to the input term is provided.
+![graph](https://github.com/AnastasiyaDmrsk/Identification-and-Visualization-of-Legal-Definitions-and-Relations/assets/87528008/d8cce828-2bc6-497a-9439-0e5decd2e1ae)
 
 ## Technologies
 ***
@@ -49,6 +52,8 @@ A list of technologies used within the project:
 * WordNet (https://wordnet.princeton.edu)
 * NLTK (https://www.nltk.org)
 * Django (https://www.djangoproject.com/): Version 3.2.9
+* NetworkX (https://networkx.org)
+* Matplotlib (https://matplotlib.org/)
 * HTML (https://dev.w3.org/html5/): Version 5.0
 * CSS (https://www.w3.org/Style/CSS/)
 * Bootstrap (https://getbootstrap.com/): Version 5.1.3
