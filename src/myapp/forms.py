@@ -2,6 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from bs4 import BeautifulSoup
 import requests
+from myapp.definitions import get_dictionary
 
 
 # documentation how CELEX is identified: https://eur-lex.europa.eu/content/tools/eur-lex-celex-infographic-A3.pdf
@@ -23,6 +24,15 @@ def check(celex):
         raise ValidationError('The regulation does not contain legal definitions and cannot be processed. ')
 
 
+def check_if_definition(definition):
+    if definition not in get_dictionary().keys():
+        raise ValidationError('The definition could not be found. ')
+
+
 class FormCELEX(forms.Form):
     number = forms.CharField(label='Please enter a CELEX number of a regulation', min_length=10,
                              max_length=10, validators=[check])
+
+
+class FormDefinition(forms.Form):
+    definition = forms.CharField(label='Please enter a legal definition', validators=[check_if_definition])

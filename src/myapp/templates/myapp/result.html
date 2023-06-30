@@ -14,7 +14,7 @@
 <h1 style="font-size: 45px; color: black">Analysis of the entered regulation</h1>
 <h3 style="text-align: center; font-size: 90%; margin-top: 20px; margin-bottom: 20px">{{ title }}</h3>
 <h3 style="text-align: center; font-size: 90%">CELEX number: {{ celex }}</h3>
-{#<div class="d-grid gap-2">#}
+
 <div class="d-flex align-items-center justify-content-center">
 <div class="btn-group btn-group-toggle" data-toggle="buttons" style="margin-bottom: 30px; margin-top: 30px">
     <button class="btn btn-dark" id="site" type="button">
@@ -22,8 +22,8 @@
     <button class="btn btn-dark" type="button"> <a href="{% url 'download_definitions_file' %}"> Download a list of legal definitions</a></button>
     <button class="btn btn-dark" type="button"> <a href="{% url 'download_sentences' %}"> Download a list of sentences with legal definitions</a></button>
     <button class="btn btn-dark" type="button"><a href="{% url 'download_annotations' %}"> Download a regulation with annotations</a></button>
-    {#<button class="btn btn-dark" type="button"> <a href="{% url 'annotations' %}">Regulation with annotations</a></button>#}
     <button class="btn btn-dark" type="button"><a href="{% url 'download_relations' %}">Download a list of semantic relations between definitions</a></button>
+    <button class="btn btn-secondary" type="button"><a href="{% url 'graph' %}">Download a relations graph</a></button>
     </div>
 </div>
 <div class="statistics" style="text-align: center; color: black">

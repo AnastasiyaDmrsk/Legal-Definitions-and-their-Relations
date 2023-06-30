@@ -1,17 +1,20 @@
-import unicodedata
-
-from django.shortcuts import render
-from .forms import FormCELEX
-from django.http import HttpResponseRedirect
-import requests
 import re
+import unicodedata
+from collections import Counter
+
+import matplotlib.pyplot as plt
+import networkx as nx
+import requests
 from bs4 import BeautifulSoup
 from django.http import FileResponse
-from collections import Counter
-from myapp.tests import compare_definitions_and_relations, compare_sentences
-from myapp.relations_spacy import noun_relations, build_tree, get_hyponymy
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
+
 from myapp.definitions import find_definitions, get_annotations, \
-    check_more_definitions_in_text, any_definition_in_text
+    check_more_definitions_in_text, any_definition_in_text, get_dictionary
+from myapp.relations_spacy import noun_relations, build_tree, get_hyponymy, construct_ontology_graph, \
+    construct_default_graph
+from .forms import FormCELEX, FormDefinition
 
 site = ""
 celex = ""
@@ -22,6 +25,7 @@ annotations = {}
 regulation_with_annotations = ""
 done_date = ""
 regulation_body = ""
+current_def = ""
 
 counter_set = {}  # counts the frequency of each definition
 sentences_set = {}
@@ -58,29 +62,83 @@ def load_document(celex):
 def result(request):
     extract_text(site)
     if len(most_frequent_definitions()) >= 5:
-        context_dict = {'site': site, 'celex': celex, 'definitions': definitions, 'num_def': len(annotations.keys()),
+        context_dict = {'site': site, 'celex': celex, 'definitions': definitions,
+                        'num_def': len(annotations.keys()),
                         'title': reg_title, 'date': done_date, 'frequent1': most_frequent_definitions()[0],
                         'frequent2': most_frequent_definitions()[1], 'frequent3': most_frequent_definitions()[2],
                         'frequent4': most_frequent_definitions()[3], 'frequent5': most_frequent_definitions()[4]}
     elif len(most_frequent_definitions()) == 4:
-        context_dict = {'site': site, 'celex': celex, 'definitions': definitions, 'num_def': len(annotations.keys()),
+        context_dict = {'site': site, 'celex': celex, 'definitions': definitions,
+                        'num_def': len(annotations.keys()),
                         'title': reg_title, 'date': done_date, 'frequent1': most_frequent_definitions()[0],
                         'frequent2': most_frequent_definitions()[1], 'frequent3': most_frequent_definitions()[2],
                         'frequent4': most_frequent_definitions()[3]}
     elif len(most_frequent_definitions()) == 3:
-        context_dict = {'site': site, 'celex': celex, 'definitions': definitions, 'num_def': len(annotations.keys()),
+        context_dict = {'site': site, 'celex': celex, 'definitions': definitions,
+                        'num_def': len(annotations.keys()),
                         'title': reg_title, 'date': done_date, 'frequent1': most_frequent_definitions()[0],
                         'frequent2': most_frequent_definitions()[1], 'frequent3': most_frequent_definitions()[2]}
     else:
-        context_dict = {'site': site, 'celex': celex, 'definitions': definitions, 'num_def': len(annotations.keys()),
+        context_dict = {'site': site, 'celex': celex, 'definitions': definitions,
+                        'num_def': len(annotations.keys()),
                         'title': reg_title, 'date': done_date}
-    return render(request, 'myapp/result.html', context_dict)  # and the parameters for afterwards
+    return render(request, 'myapp/result.html', context_dict)
 
 
 # for testing purposes of assignment of annotations
 def annotations_page(request):
     context_dict = {'body': regulation_body}
     return render(request, 'myapp/annotations.html', context_dict)
+
+
+# for relation graph
+def graph(request):
+    defin = get_dictionary()
+    image_path = 'myapp/static/myapp/graph.png'
+
+    # if user enters an existing legal definition then construct a graph
+    if request.method == 'POST':
+        form = FormDefinition(request.POST)
+
+        if form.is_valid():
+            global current_def
+            current_def = form.cleaned_data['definition']
+            graph = construct_ontology_graph(get_hyponymy(), current_def)
+            plt.figure(figsize=(8, 8))
+            pos = nx.circular_layout(graph)
+
+            colors = []
+            for node in list(graph.nodes):
+                if node == current_def:
+                    colors.append('red')
+                elif node in defin:
+                    colors.append('pink')
+                else:
+                    colors.append('lightblue')
+
+            sizes = [1500 if node_name == current_def else 800 for node_name in list(graph.nodes)]
+            nx.draw(graph, pos, with_labels=True, node_color=colors, node_size=sizes, font_size=9,
+                    font_weight='bold', edge_color='gray', arrows=True)
+            plt.margins(0.25, tight=False)
+            plt.title('Ontology Graph')
+
+            description = 'Selected definition: ' + current_def.upper() + "." + " Number of hits: " + \
+                          str(len(sentences_set[current_def])) + ". " + calculate_the_frequency(current_def)
+            plt.figtext(0.5, 0, description, wrap=True, horizontalalignment='center', fontsize=11)
+
+            plt.savefig(image_path)
+            return render(request, 'myapp/graph.html',
+                          {'form': form, 'definitions': defin, 'image_path': 'myapp/graph.png'})
+    else:
+        # if the user enters no definition then create a default graph
+        form = FormDefinition()
+        g = construct_default_graph()
+        plt.figure(figsize=(8, 8))
+        pos = nx.circular_layout(g)
+        nx.draw(g, pos, with_labels=True, node_color='gray', node_size=1200, font_size=11,
+                font_weight='bold', edge_color='gray', arrows=True)
+        plt.savefig(image_path)
+    return render(request, 'myapp/graph.html', {'form': form, 'definitions': defin, 'image_path': 'myapp/graph.png'})
 
 
 def extract_text(url):
@@ -110,7 +168,7 @@ def extract_text(url):
     global relations
     relations = "\n".join(noun_relations(definitions))
     # uncomment for evaluation purposes
-    compare_sentences()
+    # compare_sentences()
     # compare_definitions_and_relations()
 
 
@@ -193,16 +251,17 @@ def most_frequent_definitions():
     top_five_definitions = [definition[0] for definition in sorted_def[:5]]
     for d in top_five_definitions:
         def_list.append(d + ": " + str(len(sentences_set[d])) + " hits in " + len(articles_set[d]).__str__() +
-                            " articles")
+                        " articles")
     return def_list
 
 
 def calculate_the_frequency(key):
     counter = Counter(articles_set_and_frequency[key])
     repeated_elements = [(element, count) for element, count in counter.items()]
-    articles = "Definition " + key + " can be found in: "
+    articles = "Definition " + key + " can be found in: Article "
     for (element, count) in repeated_elements:
-        articles = articles + element + "; "  # + " with " + str(count) + " number of hits "
+        num = re.findall(r'\d+', element)
+        articles = articles + "".join(num) + "; "  # + " with " + str(count) + " number of hits "
     return articles.replace(" ; ", " ")
 
 
