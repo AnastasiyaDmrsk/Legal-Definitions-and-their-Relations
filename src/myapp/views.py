@@ -13,7 +13,7 @@ from django.shortcuts import render
 from myapp.definitions import find_definitions, get_annotations, \
     check_more_definitions_in_text, any_definition_in_text, get_dictionary
 from myapp.relations_spacy import noun_relations, build_tree, get_hyponymy, construct_ontology_graph, \
-    construct_default_graph
+    construct_default_graph, get_meronymy, get_synonymy
 from .forms import FormCELEX, FormDefinition
 
 site = ""
@@ -103,7 +103,16 @@ def graph(request):
         if form.is_valid():
             global current_def
             current_def = form.cleaned_data['definition']
-            graph = construct_ontology_graph(get_hyponymy(), current_def)
+
+            # construct a graph depending on the relation
+            relation = form.cleaned_data['relation']
+            if relation == 'meronymy':
+                graph = construct_ontology_graph(get_meronymy(), current_def)
+            elif relation == 'synonymy':
+                graph = construct_ontology_graph(get_synonymy(), current_def)
+            else:
+                graph = construct_ontology_graph(get_hyponymy(), current_def)
+
             plt.figure(figsize=(8, 8))
             pos = nx.circular_layout(graph)
 
@@ -116,7 +125,7 @@ def graph(request):
                 else:
                     colors.append('lightblue')
 
-            sizes = [1500 if node_name == current_def else 800 for node_name in list(graph.nodes)]
+            sizes = [2000 if node_name == current_def else 1500 for node_name in list(graph.nodes)]
             nx.draw(graph, pos, with_labels=True, node_color=colors, node_size=sizes, font_size=9,
                     font_weight='bold', edge_color='gray', arrows=True)
             plt.margins(0.25, tight=False)
@@ -135,7 +144,7 @@ def graph(request):
         g = construct_default_graph()
         plt.figure(figsize=(8, 8))
         pos = nx.circular_layout(g)
-        nx.draw(g, pos, with_labels=True, node_color='gray', node_size=1200, font_size=11,
+        nx.draw(g, pos, with_labels=True, node_color='gray', node_size=2500, font_size=11,
                 font_weight='bold', edge_color='gray', arrows=True)
         plt.savefig(image_path)
     return render(request, 'myapp/graph.html', {'form': form, 'definitions': defin, 'image_path': 'myapp/graph.png'})

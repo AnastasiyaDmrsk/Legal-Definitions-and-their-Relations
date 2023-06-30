@@ -35,4 +35,10 @@ class FormCELEX(forms.Form):
 
 
 class FormDefinition(forms.Form):
+    RELATIONS = (
+        ('hyponymy', 'Hyponymy'),
+        ('synonymy', 'Synonymy'),
+        ('meronymy', 'Meronymy')
+    )
     definition = forms.CharField(label='Please enter a legal definition', validators=[check_if_definition])
+    relation = forms.ChoiceField(label='  Choose a relation', choices=RELATIONS, widget=forms.RadioSelect)

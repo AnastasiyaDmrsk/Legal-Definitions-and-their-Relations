@@ -9,9 +9,10 @@ from myapp.definitions import get_dictionary
 from collections import defaultdict
 import csv
 import networkx as nx
-import matplotlib.pyplot as plt
 
 hyponymy = {}
+meronymy = {}
+synonymy = {}
 all_relations = list()
 dash = False
 
@@ -89,7 +90,11 @@ def find_synonyms():
     global all_relations
     for synonyms in result_synonyms:
         s = ""
+        if synonyms[0] not in synonymy or synonymy.values():
+            synonymy[synonyms[0]] = set()
         for synonym in synonyms:
+            if synonym != synonyms[0]:
+                synonymy[synonyms[0]].add(synonym)
             s += synonym + ", "
         all_relations.append(s[:-2] + " are synonyms")
 
@@ -125,6 +130,11 @@ def save_to_meronymy(noun, key):
                 meronym_noun += noun_token.text + " "
     if meronym_noun != "":
         all_relations.append(key + " is a meronym of " + meronym_noun.strip())
+    m = meronym_noun.strip()
+    if m not in meronymy and m != "":
+        meronymy[m] = set()
+    if m != "":
+        meronymy[m].add(key)
 
 
 def single_relation(doc):
@@ -170,6 +180,14 @@ def prepare_sentence(value):
 
 def get_hyponymy():
     return hyponymy
+
+
+def get_meronymy():
+    return meronymy
+
+
+def get_synonymy():
+    return synonymy
 
 
 def build_tree(node, depth=0):
