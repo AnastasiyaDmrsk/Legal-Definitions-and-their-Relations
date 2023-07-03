@@ -43,7 +43,7 @@
 </head>
 <body>
 <h1 style="font-size: 45px; color: black; text-align: center">Relation Graph</h1>
-<h3 style="color: black; text-align: center">Enter one of the legal definitions to receive a hyponymy graph depicting the internal relations between terms</h3>
+<h3 style="color: black; text-align: center">Enter one of the legal definitions to receive a knowledge graph depicting the semantic relations between terms</h3>
 <p style="text-align: center;">
     In the produced graph, the entered definition is highlighted <span style="color: red;">red</span>, while the other legal definitions are marked as <span style="color: pink;">pink</span> nodes. Finally, all the other terms have a <span style="color: lightblue;">light blue</span> color.
 </p>
@@ -72,6 +72,8 @@
         </form>
         {% load static %}
         <img src="{% static image_path %}" alt="">
+        <br>
+        <p style="font-size: 11px"> {{ statistics }}</p>
     </div>
 
 </div>

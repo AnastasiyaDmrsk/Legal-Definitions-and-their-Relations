@@ -1,6 +1,6 @@
 import re
 import unicodedata
-from collections import Counter
+from collections import Counter, defaultdict
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -26,6 +26,7 @@ regulation_with_annotations = ""
 done_date = ""
 regulation_body = ""
 current_def = ""
+frequency_articles = {}
 
 counter_set = {}  # counts the frequency of each definition
 sentences_set = {}
@@ -132,12 +133,13 @@ def graph(request):
             plt.title('Ontology Graph')
 
             description = 'Selected definition: ' + current_def.upper() + "." + " Number of hits: " + \
-                          str(len(sentences_set[current_def])) + ". " + calculate_the_frequency(current_def)
+                          str(len(sentences_set[current_def]))
             plt.figtext(0.5, 0, description, wrap=True, horizontalalignment='center', fontsize=11)
 
             plt.savefig(image_path)
             return render(request, 'myapp/graph.html',
-                          {'form': form, 'definitions': defin, 'image_path': 'myapp/graph.png'})
+                          {'form': form, 'definitions': defin, 'image_path': 'myapp/graph.png',
+                           'statistics': print_frequency(current_def)})
     else:
         # if the user enters no definition then create a default graph
         form = FormDefinition()
@@ -147,7 +149,8 @@ def graph(request):
         nx.draw(g, pos, with_labels=True, node_color='gray', node_size=2500, font_size=11,
                 font_weight='bold', edge_color='gray', arrows=True)
         plt.savefig(image_path)
-    return render(request, 'myapp/graph.html', {'form': form, 'definitions': defin, 'image_path': 'myapp/graph.png'})
+    return render(request, 'myapp/graph.html', {'form': form, 'definitions': defin,
+                                                'image_path': 'myapp/graph.png', 'statistics': ''})
 
 
 def extract_text(url):
@@ -196,6 +199,7 @@ def add_annotations_to_the_regulation(soup):
     for sentence in soup.find_all("p"):
         if check_if_article(sentence.text):
             article = sentence.text
+            create_an_article(article)
         for (key, value) in definitions:
             if sentence.text.__contains__(key):
                 text = sentence.text
@@ -211,6 +215,7 @@ def add_annotations_to_the_regulation(soup):
                         start_index = end
                         sent = text.replace("\n\n", "\n").strip()
                         sent = unicodedata.normalize("NFKD", sent)
+
                         if k not in sentences_set:
                             sentences_set[k] = set()
                         sentences_set[k].add(sent)
@@ -219,7 +224,12 @@ def add_annotations_to_the_regulation(soup):
                         articles_set[k].add(article)
                         if k not in articles_set_and_frequency:
                             articles_set_and_frequency[k] = list()
-                        articles_set_and_frequency[k].append(article)
+                        if len(article) != 0:
+                            articles_set_and_frequency[k].append(article)
+
+                        global frequency_articles
+                        if len(article) != 0:
+                            frequency_articles[article].add((key, sent))
                     sentence.append(text[start_index:])
 
 
@@ -230,6 +240,36 @@ def check_if_article(text):
     if new_text.isdigit():
         return True
     return False
+
+
+def create_an_article(article):
+    global frequency_articles
+    frequency_articles[article] = set()  # set of tuples (definition, sentence)
+
+
+# returns a dictionary where a key is an article and a value is a set of tuples (legal definition, number of hits)
+def count_article_frequency():
+    global frequency_articles
+    result_dict = {}
+    for key, value in frequency_articles.items():
+        counts = defaultdict(int)
+        for (k, v) in value:
+            counts[k] += 1
+        result_dict[key] = [(k, count) for k, count in counts.items()]
+    return result_dict
+
+
+# creates a string of a form Article #: # of hits for the given definition
+def print_frequency(definition):
+    res_string = ''
+    counters = count_article_frequency()
+    filtered_dict = {key: {(w, num) for w, num in value if w == definition} for key, value in counters.items()}
+    for article in filtered_dict.keys():
+        for k, v in filtered_dict[article]:
+            if k == definition:
+                res_string += article + ': ' + str(v) + ' hits;\n'
+                break
+    return res_string
 
 
 # can be adjusted depending on the processed document
