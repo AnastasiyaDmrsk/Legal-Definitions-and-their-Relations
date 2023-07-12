@@ -8,7 +8,6 @@ import spacy
 from myapp.definitions import get_dictionary
 from collections import defaultdict
 import csv
-import networkx as nx
 
 hyponymy = {}
 meronymy = {}
@@ -197,26 +196,6 @@ def build_tree(node, depth=0):
     for child in hyponymy[node]:
         result += build_tree(child, depth + 1)
     return result
-
-
-# graphs for the visualization
-def construct_ontology_graph(data, definition):
-    graph = nx.DiGraph()
-    for parent, children in data.items():
-        if definition == parent or definition in children:
-            graph.add_node(parent)
-            graph.add_nodes_from(children)
-            for child in children:
-                graph.add_edge(parent, child)
-    return graph
-
-
-def construct_default_graph():
-    graph = nx.DiGraph()
-    graph.add_node('Hypernym')
-    graph.add_node('Hyponym')
-    graph.add_edge('Hypernym', 'Hyponym')
-    return graph
 
 
 # for evaluation of definitions and relations
