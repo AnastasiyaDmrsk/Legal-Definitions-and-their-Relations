@@ -38,7 +38,7 @@ To design a layout of the prototype, we applied Django Forms and Bootstrap. A us
 
 ![layout drawio](https://github.com/AnastasiyaDmrsk/Identification-and-Visualization-of-Legal-Definitions-and-Relations/assets/87528008/6af8d5a4-09ae-43fe-a20b-1b411db164ed)
 
-#### Knowledge Graph
+#### Knowledge Graph and Frequency Diagram
 For better visualization of extracted semantic relations, the web service provides a knowledge graph for legal definitions. Since a general graph with all semantic relations and terms would be too complex, the user should pick from the list one legal definition and submit it. Additionally, the user can choose which type of relation should be the base of the graph. After the submission, the tool loads a graph, highlighting the entered definition in red and the other legal definitions in pink. Below the graph, the summary of the frequency data referring to the input term is provided.
 ![graph](https://github.com/AnastasiyaDmrsk/Identification-and-Visualization-of-Legal-Definitions-and-Relations/assets/87528008/d8cce828-2bc6-497a-9439-0e5decd2e1ae)
 
@@ -61,7 +61,7 @@ A list of technologies used within the project:
 ***
 1. Clone a remote repository 
 ```bash
-git clone git@github.com:AnastasiyaDmrsk/Identification-and-Visualization-of-Legal-Definitions-and-Relations.git
+git clone https://github.com/AnastasiyaDmrsk/Identification-and-Visualization-of-Legal-Definitions-and-Relations.git 
 ```
 2. Go into the project directory
 ```bash
@@ -71,13 +71,13 @@ cd Identification-and-Visualization-of-Legal-Definitions-and-Relations
 ```bash
 git pull
 ```
-4. Install all project dependencies with the help of the package manager [pip](https://pip.pypa.io/en/stable/)
-```bash
-pip install -r requirements.txt
-```
-5. Go into the src directory 
+4. Go into the src directory 
 ```bash
 cd src
+```
+5. Install all project dependencies with the help of the package manager [pip](https://pip.pypa.io/en/stable/)
+```bash
+pip install -r requirements.txt
 ```
 6. Run the server (locally)
 ```bash
