@@ -2,8 +2,6 @@ import re
 import unicodedata
 from collections import Counter, defaultdict
 
-import matplotlib.pyplot as plt
-import networkx as nx
 import requests
 from bs4 import BeautifulSoup
 from django.http import FileResponse
@@ -12,9 +10,9 @@ from django.shortcuts import render
 
 from myapp.definitions import find_definitions, get_annotations, \
     check_more_definitions_in_text, any_definition_in_text, get_dictionary
-from myapp.relations_spacy import noun_relations, build_tree, get_hyponymy, construct_ontology_graph, \
-    construct_default_graph, get_meronymy, get_synonymy
+from myapp.relations import noun_relations, build_tree, get_hyponymy, get_meronymy, get_synonymy
 from .forms import FormCELEX, FormDefinition
+from .graph import create_bar_chart, construct_default_graph, construct_relation_graph
 
 site = ""
 celex = ""
@@ -25,10 +23,7 @@ annotations = {}
 regulation_with_annotations = ""
 done_date = ""
 regulation_body = ""
-current_def = ""
 frequency_articles = {}
-
-counter_set = {}  # counts the frequency of each definition
 sentences_set = {}
 articles_set = {}
 articles_set_and_frequency = {}
@@ -62,27 +57,14 @@ def load_document(celex):
 
 def result(request):
     extract_text(site)
-    if len(most_frequent_definitions()) >= 5:
-        context_dict = {'site': site, 'celex': celex, 'definitions': definitions,
-                        'num_def': len(annotations.keys()),
-                        'title': reg_title, 'date': done_date, 'frequent1': most_frequent_definitions()[0],
-                        'frequent2': most_frequent_definitions()[1], 'frequent3': most_frequent_definitions()[2],
-                        'frequent4': most_frequent_definitions()[3], 'frequent5': most_frequent_definitions()[4]}
-    elif len(most_frequent_definitions()) == 4:
-        context_dict = {'site': site, 'celex': celex, 'definitions': definitions,
-                        'num_def': len(annotations.keys()),
-                        'title': reg_title, 'date': done_date, 'frequent1': most_frequent_definitions()[0],
-                        'frequent2': most_frequent_definitions()[1], 'frequent3': most_frequent_definitions()[2],
-                        'frequent4': most_frequent_definitions()[3]}
-    elif len(most_frequent_definitions()) == 3:
-        context_dict = {'site': site, 'celex': celex, 'definitions': definitions,
-                        'num_def': len(annotations.keys()),
-                        'title': reg_title, 'date': done_date, 'frequent1': most_frequent_definitions()[0],
-                        'frequent2': most_frequent_definitions()[1], 'frequent3': most_frequent_definitions()[2]}
-    else:
-        context_dict = {'site': site, 'celex': celex, 'definitions': definitions,
-                        'num_def': len(annotations.keys()),
-                        'title': reg_title, 'date': done_date}
+
+    # create a bar chart with most frequent definitions
+    create_bar_chart(most_frequent_definitions(), 'myapp/static/myapp/top.png', 'Definitions', '# of hits',
+                     'Top Most Frequent Definitions')
+
+    context_dict = {'site': site, 'celex': celex, 'definitions': definitions,
+                    'num_def': len(annotations.keys()),
+                    'title': reg_title, 'date': done_date, 'path': 'myapp/top.png'}
     return render(request, 'myapp/result.html', context_dict)
 
 
@@ -96,61 +78,34 @@ def annotations_page(request):
 def graph(request):
     defin = get_dictionary()
     image_path = 'myapp/static/myapp/graph.png'
-
-    # if user enters an existing legal definition then construct a graph
+    freq_image_path = 'myapp/static/myapp/frequency.png'
     if request.method == 'POST':
         form = FormDefinition(request.POST)
-
         if form.is_valid():
-            global current_def
             current_def = form.cleaned_data['definition']
 
             # construct a graph depending on the relation
             relation = form.cleaned_data['relation']
             if relation == 'meronymy':
-                graph = construct_ontology_graph(get_meronymy(), current_def)
+                construct_relation_graph(get_meronymy(), defin, current_def, image_path)
             elif relation == 'synonymy':
-                graph = construct_ontology_graph(get_synonymy(), current_def)
+                construct_relation_graph(get_synonymy(), defin, current_def, image_path)
             else:
-                graph = construct_ontology_graph(get_hyponymy(), current_def)
+                construct_relation_graph(get_hyponymy(), defin, current_def, image_path)
 
-            plt.figure(figsize=(8, 8))
-            pos = nx.circular_layout(graph)
+            # construct a frequency graph
+            create_bar_chart(get_freq_dict(current_def), freq_image_path, 'Articles', '# of hits', 'Frequency Diagram')
 
-            colors = []
-            for node in list(graph.nodes):
-                if node == current_def:
-                    colors.append('red')
-                elif node in defin:
-                    colors.append('pink')
-                else:
-                    colors.append('lightblue')
-
-            sizes = [2000 if node_name == current_def else 1500 for node_name in list(graph.nodes)]
-            nx.draw(graph, pos, with_labels=True, node_color=colors, node_size=sizes, font_size=9,
-                    font_weight='bold', edge_color='gray', arrows=True)
-            plt.margins(0.25, tight=False)
-            plt.title('Ontology Graph')
-
-            description = 'Selected definition: ' + current_def.upper() + "." + " Number of hits: " + \
-                          str(len(sentences_set[current_def]))
-            plt.figtext(0.5, 0, description, wrap=True, horizontalalignment='center', fontsize=11)
-
-            plt.savefig(image_path)
             return render(request, 'myapp/graph.html',
                           {'form': form, 'definitions': defin, 'image_path': 'myapp/graph.png',
-                           'statistics': print_frequency(current_def)})
+                           'freq': 'myapp/frequency.png'})
     else:
-        # if the user enters no definition then create a default graph
+        # if the user enters no definition: create a default graph and an empty diagram
         form = FormDefinition()
-        g = construct_default_graph()
-        plt.figure(figsize=(8, 8))
-        pos = nx.circular_layout(g)
-        nx.draw(g, pos, with_labels=True, node_color='gray', node_size=2500, font_size=11,
-                font_weight='bold', edge_color='gray', arrows=True)
-        plt.savefig(image_path)
+        construct_default_graph(image_path)
+        create_bar_chart(dict(), freq_image_path, 'Articles', '# of hits', 'Frequency Diagram')
     return render(request, 'myapp/graph.html', {'form': form, 'definitions': defin,
-                                                'image_path': 'myapp/graph.png', 'statistics': ''})
+                                                'image_path': 'myapp/graph.png', 'freq': 'myapp/frequency.png'})
 
 
 def extract_text(url):
@@ -259,17 +214,17 @@ def count_article_frequency():
     return result_dict
 
 
-# creates a string of a form Article #: # of hits for the given definition
-def print_frequency(definition):
-    res_string = ''
+# creates a dictionary of a form Article #: # of hits for the given definition
+def get_freq_dict(definition):
     counters = count_article_frequency()
     filtered_dict = {key: {(w, num) for w, num in value if w == definition} for key, value in counters.items()}
+    result_dict = {}
     for article in filtered_dict.keys():
         for k, v in filtered_dict[article]:
             if k == definition:
-                res_string += article + ': ' + str(v) + ' hits;\n'
-                break
-    return res_string
+                a = article.replace("Article ", "")
+                result_dict[a] = v
+    return result_dict
 
 
 # can be adjusted depending on the processed document
@@ -295,12 +250,11 @@ def create_new_tag(soup, text, key, value, start, end):
 
 
 def most_frequent_definitions():
-    def_list = []
+    def_list = dict()
     sorted_def = sorted(sentences_set.items(), key=lambda x: len(x[1]), reverse=True)
     top_five_definitions = [definition[0] for definition in sorted_def[:5]]
     for d in top_five_definitions:
-        def_list.append(d + ": " + str(len(sentences_set[d])) + " hits in " + len(articles_set[d]).__str__() +
-                        " articles")
+        def_list[d] = len(sentences_set[d])
     return def_list
 
 
