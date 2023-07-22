@@ -27,8 +27,15 @@ def construct_default_graph(path):
     graph.add_edge('Hypernym', 'Hyponym')
     plt.figure(figsize=(8, 8))
     pos = nx.circular_layout(graph)
-    nx.draw(graph, pos, with_labels=True, node_color='gray', node_size=2500, font_size=11,
-            font_weight='bold', edge_color='gray', arrows=True)
+    nx.draw(graph,
+            pos,
+            with_labels=True,
+            node_color='gray',
+            node_size=2500,
+            font_size=11,
+            font_weight='bold',
+            edge_color='gray',
+            arrows=True)
     plt.savefig(path)
 
 
@@ -52,9 +59,19 @@ def construct_relation_graph(data, dictionary, definition, path):
         else:
             colors.append('lightblue')
 
-    sizes = [2000 if node_name == definition else 1500 for node_name in list(graph.nodes)]
-    nx.draw(graph, pos, with_labels=True, node_color=colors, node_size=sizes, font_size=9,
-            font_weight='bold', edge_color='gray', arrows=True)
+    sizes = [
+        2000 if node_name == definition else 1500
+        for node_name in list(graph.nodes)
+    ]
+    nx.draw(graph,
+            pos,
+            with_labels=True,
+            node_color=colors,
+            node_size=sizes,
+            font_size=9,
+            font_weight='bold',
+            edge_color='gray',
+            arrows=True)
     plt.margins(0.2, tight=False)
     plt.title('Ontology Graph')
     plt.savefig(path)

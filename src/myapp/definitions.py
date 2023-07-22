@@ -13,7 +13,7 @@ sub_definitions = {}  # here we save all the definitions which are the part of a
 definitions = {}  # definitions n:m
 definitions_dict = {}  # definitions 1:n for annotations
 articles_set_and_frequency = {}
-definitions_list = list(tuple())  # in this list each element is a tuple (definition, explanation)
+definitions_list = list(tuple())  # each element is a tuple (definition, explanation)
 nltk.download('wordnet')
 
 
@@ -110,11 +110,14 @@ def is_synonym(verb):
         return True
     # since most of the regulations have mean as a verb or include, we compare the verb to the synonyms of them
     mean_synsets = wn.synsets('mean', pos='v')
-    mean_synonyms = set(lemma.name() for synset in mean_synsets for lemma in synset.lemmas())
+    mean_synonyms = set(lemma.name() for synset in mean_synsets
+                        for lemma in synset.lemmas())
     include_synsets = wn.synsets('include', pos='v')
-    include_synonyms = set(lemma.name() for synset in include_synsets for lemma in synset.lemmas())
+    include_synonyms = set(lemma.name() for synset in include_synsets
+                           for lemma in synset.lemmas())
     be_synsets = wn.synsets('be', pos='v')
-    be_synonyms = set(lemma.name() for synset in be_synsets for lemma in synset.lemmas())
+    be_synonyms = set(lemma.name() for synset in be_synsets
+                      for lemma in synset.lemmas())
     if verb in mean_synonyms or verb in include_synonyms or verb in be_synonyms:
         return True
     return False
@@ -124,7 +127,9 @@ def process_definitions(text):
     text = unicodedata.normalize("NFKD", text)
     if text.__contains__("’"):
         nlp = spacy.load("en_core_web_sm")
-        doc = nlp(text.split(";")[0])  # this way only the most important part of the definition will be examined
+        doc = nlp(
+            text.split(";")[0]
+        )  # this way only the most important part of the definition will be examined
         definition_set = set()
         explanation_set = set()
         # search for the first verb after the definition
@@ -133,7 +138,8 @@ def process_definitions(text):
             if token.text.__contains__("mean"):
                 first_verb = token
                 break
-            if token.dep_ == "ROOT" and (token.pos_ == "VERB" or token.pos_ == "AUX"):
+            if token.dep_ == "ROOT" and (token.pos_ == "VERB"
+                                         or token.pos_ == "AUX"):
                 first_verb = token
                 break
         if first_verb is not None and is_synonym(first_verb.lemma_):
@@ -144,7 +150,8 @@ def process_definitions(text):
             save_in_annotations("".join(d), "".join(e))
             for element in d:
                 if element.__contains__("‘"):
-                    if element.__contains__(" and ‘") or element.__contains__(" or ‘") or element.__contains__(", ‘"):
+                    if element.__contains__(" and ‘") or element.__contains__(
+                            " or ‘") or element.__contains__(", ‘"):
                         definition_set = split_multiples(element)
                     else:
                         definition_set.add(element)
@@ -155,8 +162,10 @@ def process_definitions(text):
                         base = element_e
                         while len(e) > e.index(element_e) + 1:
                             next_element = e[e.index(element_e) + 1]
-                            if next_element[0] == "(" and len(e) > e.index(element_e) + 2:
-                                new_element = base + " " + e[e.index(element_e) + 2]
+                            if next_element[0] == "(" and len(
+                                    e) > e.index(element_e) + 2:
+                                new_element = base + " " + e[e.index(element_e)
+                                                             + 2]
                                 element_e = e[e.index(element_e) + 2]
                             else:
                                 new_element = base + " " + next_element
@@ -236,8 +245,10 @@ def any_definition_in_text(text):
                         match = re.search(k, text)
                         if match is not None:
                             s, e = match.start(), match.end()
-                            if not check_definition_inside(starts_and_ends, s, e):
-                                definitions_in_text.add((k, definitions_dict[k], s, e))
+                            if not check_definition_inside(
+                                    starts_and_ends, s, e):
+                                definitions_in_text.add(
+                                    (k, definitions_dict[k], s, e))
                                 starts_and_ends.add((s, e))
             match = re.search(key, text)
             if match is not None:

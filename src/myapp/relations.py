@@ -85,7 +85,9 @@ def find_synonyms():
     synonym_keys = defaultdict(list)
     for k, v in get_dictionary().items():
         synonym_keys[v].append(k)
-    result_synonyms = [tuple(keys) for keys in synonym_keys.values() if len(keys) > 1]
+    result_synonyms = [
+        tuple(keys) for keys in synonym_keys.values() if len(keys) > 1
+    ]
     global all_relations
     for synonyms in result_synonyms:
         s = ""
@@ -104,12 +106,15 @@ def save_to_hyponymy(noun, key):
         if noun_token.pos_ != "PRON" and noun_token.pos_ != "DET":
             if noun_token.text == "‘":
                 continue
-            if (noun_token.nbor() is not None and noun_token.nbor().text == "-") or noun_token.text == "-":
+            if (noun_token.nbor() is not None and noun_token.nbor().text
+                    == "-") or noun_token.text == "-":
                 hyponym_noun += noun_token.text
             else:
                 hyponym_noun += noun_token.text + " "
     if hyponym_noun != "":
-        all_relations.append(key + " is a hyponym of " + hyponym_noun.strip().replace(" , ", ", ").replace(" '", "'"))
+        all_relations.append(
+            key + " is a hyponym of " +
+            hyponym_noun.strip().replace(" , ", ", ").replace(" '", "'"))
     hypernym = hyponym_noun.strip()
     if hypernym not in hyponymy and hypernym != "":
         hyponymy[hypernym] = set()
@@ -123,7 +128,8 @@ def save_to_meronymy(noun, key):
         if noun_token.pos_ != "PRON" and noun_token.pos_ != "DET":
             if noun_token.text == "‘":
                 continue
-            if (noun_token.nbor() is not None and noun_token.nbor().text == "-") or noun_token.text == "-":
+            if (noun_token.nbor() is not None and noun_token.nbor().text
+                    == "-") or noun_token.text == "-":
                 meronym_noun += noun_token.text
             else:
                 meronym_noun += noun_token.text + " "
@@ -148,7 +154,8 @@ def single_relation(doc):
     # check for , or and
     if doc[0].text == ',':
         # cases like including, with, in ...
-        if len(doc) > 1 and (doc[1].dep_ == "prep" or doc[1].dep_ == "mark" or doc[1].pos_ == "VERB"):
+        if len(doc) > 1 and (doc[1].dep_ == "prep" or doc[1].dep_ == "mark"
+                             or doc[1].pos_ == "VERB"):
             return True
         else:
             return False

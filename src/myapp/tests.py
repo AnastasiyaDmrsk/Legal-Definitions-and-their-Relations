@@ -1,6 +1,5 @@
 import os
 
-from django.test import TestCase
 import csv
 from . import views
 
@@ -20,11 +19,13 @@ def compare_definitions_and_relations():
     diff1 = data1 - data2
     diff2 = data2 - data1
     if diff1:
-        print("Rows in gold standard", "but not in the resulting file:", str(len(diff1)))
+        print("Rows in gold standard", "but not in the resulting file:",
+              str(len(diff1)))
         for row in diff1:
             print(row)
     if diff2:
-        print("Rows in the resulting file", "but not in gold standard:", str(len(diff2)))
+        print("Rows in the resulting file", "but not in gold standard:",
+              str(len(diff2)))
         for row in diff2:
             print(row)
 
@@ -53,10 +54,12 @@ def compare_sentences():
     diff1 = data1 - data2
     diff2 = data2 - data1
     if diff1:
-        print("Sentences in gold standard", "but not in the resulting file:", str(len(diff1)))
+        print("Sentences in gold standard", "but not in the resulting file:",
+              str(len(diff1)))
         for row in diff1:
             print(row)
     if diff2:
-        print("Sentences in the resulting file", "but not in gold standard:", str(len(diff2)))
+        print("Sentences in the resulting file", "but not in gold standard:",
+              str(len(diff2)))
         for row in diff2:
             print(row)
