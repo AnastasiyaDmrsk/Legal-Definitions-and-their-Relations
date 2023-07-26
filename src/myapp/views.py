@@ -1,7 +1,6 @@
 import re
 import unicodedata
 from collections import Counter, defaultdict
-
 import requests
 from bs4 import BeautifulSoup
 from django.http import FileResponse
@@ -13,6 +12,7 @@ from myapp.definitions import find_definitions, get_annotations, \
 from myapp.relations import noun_relations, build_tree, get_hyponymy, get_meronymy, get_synonymy
 from .forms import FormCELEX, FormDefinition
 from .graph import create_bar_chart, construct_default_graph, construct_relation_graph
+from .tests import compare_sentences, compare_definitions_and_relations
 
 site = ""
 celex = ""
@@ -156,10 +156,11 @@ def add_annotations_to_the_regulation(soup):
             article = sentence.text
             create_an_article(article)
         for (key, value) in definitions:
-            if sentence.text.__contains__(key):
+            capitalized = key[0].islower() and sentence.text.__contains__(key.capitalize())
+            if sentence.text.__contains__(key) or capitalized:
                 text = sentence.text
                 sentence.clear()
-                if not check_more_definitions_in_text(key, sentence.text):
+                if not check_more_definitions_in_text(key, text, capitalized):
                     # sort by the starting index
                     defs = sorted(any_definition_in_text(text), key=lambda x: x[2])
                     start_index = 0
@@ -170,6 +171,9 @@ def add_annotations_to_the_regulation(soup):
                         start_index = end
                         sent = text.replace("\n\n", "\n").strip()
                         sent = unicodedata.normalize("NFKD", sent)
+
+                        if k not in get_dictionary().keys():
+                            k = k[0].lower() + k[1:]
 
                         if k not in sentences_set:
                             sentences_set[k] = set()
@@ -264,7 +268,7 @@ def calculate_the_frequency(key):
     articles = "Definition " + key + " can be found in: Article "
     for (element, count) in repeated_elements:
         num = re.findall(r'\d+', element)
-        articles = articles + "".join(num) + "; "  # + " with " + str(count) + " number of hits "
+        articles = articles + "".join(num) + "; "
     return articles.replace(" ; ", " ")
 
 

@@ -97,7 +97,9 @@ def check_two_definitions_in_text(definition1, definition2, text):
 
 
 # return True if only the longest definitions occur in the text, but the shortest does not
-def check_more_definitions_in_text(definition1, text):
+def check_more_definitions_in_text(definition1, text, cap):
+    if cap:
+        definition1 = definition1[0].lower() + definition1[1:]
     definition_set = sub_definitions[definition1]
     for s in definition_set:
         if check_two_definitions_in_text(definition1, s, text):
@@ -237,11 +239,15 @@ def any_definition_in_text(text):
     definitions_in_text = set(tuple())
     starts_and_ends = set(tuple())
     for key, value in definitions_dict.items():
-        if text.__contains__(key):
+        capitalized = key[0].islower() and text.__contains__(key.capitalize())
+        if text.__contains__(key) or capitalized:
             d = sub_definitions[key]
             if len(d) != 0:
                 for k in d:
-                    if text.__contains__(k):
+                    cap = text.__contains__(k.capitalize()) and k[0].islower()
+                    if text.__contains__(k) or cap:
+                        if cap:
+                            k = k[0].upper() + k[1:]
                         match = re.search(k, text)
                         if match is not None:
                             s, e = match.start(), match.end()
@@ -250,6 +256,8 @@ def any_definition_in_text(text):
                                 definitions_in_text.add(
                                     (k, definitions_dict[k], s, e))
                                 starts_and_ends.add((s, e))
+            if capitalized:
+                key = key[0].upper() + key[1:]
             match = re.search(key, text)
             if match is not None:
                 start, end = match.start(), match.end()
