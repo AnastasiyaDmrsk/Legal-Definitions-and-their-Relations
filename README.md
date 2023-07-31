@@ -64,7 +64,7 @@ A list of technologies used within the project:
 ***
 1. Clone a remote repository 
 ```bash
-git clone https://github.com/AnastasiyaDmrsk/Identification-and-Visualization-of-Legal-Definitions-and-Relations.git 
+git clone https://github.com/AnastasiyaDmrsk/Legal-Definitions-and-their-Relations.git
 ```
 2. Go into the project directory
 ```bash
