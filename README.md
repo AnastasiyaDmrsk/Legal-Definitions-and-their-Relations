@@ -68,7 +68,7 @@ git clone https://github.com/AnastasiyaDmrsk/Legal-Definitions-and-their-Relatio
 ```
 2. Go into the project directory
 ```bash
-cd Identification-and-Visualization-of-Legal-Definitions-and-Relations
+cd Legal-Definitions-and-their-Relations
 ```
 3. In case you have already cloned the repository before use:
 ```bash
