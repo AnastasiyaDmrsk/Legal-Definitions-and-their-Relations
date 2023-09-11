@@ -35,6 +35,7 @@ def find_definitions(soup):
             break
         process_definitions(element.text)
     save_to_sub_definitions()
+    print(definitions_list)
     return definitions_list
 
 
@@ -253,9 +254,15 @@ def any_definition_in_text(text):
                             s, e = match.start(), match.end()
                             if not check_definition_inside(
                                     starts_and_ends, s, e):
-                                definitions_in_text.add(
-                                    (k, definitions_dict[k], s, e))
-                                starts_and_ends.add((s, e))
+                                if k not in definitions_dict:
+                                    val = definitions_dict[k.lower()]
+                                    definitions_in_text.add(
+                                        (k, val, s, e))
+                                    starts_and_ends.add((s, e))
+                                else:
+                                    definitions_in_text.add(
+                                        (k, definitions_dict[k], s, e))
+                                    starts_and_ends.add((s, e))
             if capitalized:
                 key = key[0].upper() + key[1:]
             match = re.search(key, text)
